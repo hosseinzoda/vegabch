@@ -394,7 +394,8 @@ FLAGS
       --cauldron-indexer-endpoint=<value>  (required) A url to the cauldron contracts indexer.
                                            CAULDRON_INDEXER_ENDPOINT environment variable can also be
                                            used to set it.
-
+      --decimal-amounts                    Use the defined decimals when displaying (excluding json
+                                           outputs) & taking an amount as arguments.
 GLOBAL FLAGS
   --json  Format output as json.
 
