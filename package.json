@@ -1,0 +1,68 @@
+{
+  "name": "vegabch",
+  "description": "BCH defi trading tool",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "/bin",
+    "/dist",
+    "/oclif.manifest.json"
+  ],
+  "author": "Hossein Zoda",
+  "homepage": "https://github.com/hosseinzoda/vegabch",
+  "repository": "hosseinzoda/vegabch",
+  "bugs": "https://github.com/hosseinzoda/vegabch/issues",
+  "keywords": [
+    "oclif"
+  ],
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "oclif": {
+    "bin": "vegabch",
+    "dirname": "vegabch",
+    "commands": "./dist/commands",
+    "plugins": [
+      "@oclif/plugin-help",
+      "@oclif/plugin-plugins"
+    ]
+  },
+  "scripts": {
+    "clean:build": "shx rm -rf dist",
+    "build": "tsc",
+    "postpack": "shx rm -f oclif.manifest.json",
+    "posttest": "npm run lint",
+    "prepack": "oclif manifest && oclif readme",
+    "test": "mocha --forbid-only \"test/**/*.test.ts\"",
+    "version": "oclif readme && git add README.md"
+  },
+  "bin": {
+    "vegabch": "./bin/run.js"
+  },
+  "dependencies": {
+    "@oclif/core": "^3",
+    "@oclif/plugin-help": "^6",
+    "@oclif/plugin-plugins": "^5",
+    "cashlab": "^0.0.3",
+    "mainnet-js": "^2.3.13"
+  },
+  "devDependencies": {
+    "@oclif/prettier-config": "^0.2.1",
+    "@oclif/test": "^3",
+    "@types/chai": "^4",
+    "@types/mocha": "^10",
+    "@types/node": "^18",
+    "chai": "^4",
+    "mocha": "^10",
+    "oclif": "^4",
+    "shx": "^0.3.3",
+    "ts-node": "^10",
+    "typescript": "^5"
+  },
+  "volta": {
+    "node": "20.13.1"
+  }
+}

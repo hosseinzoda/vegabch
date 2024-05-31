@@ -1,0 +1,108 @@
+{
+  "$schema": "https://cashtokens.org/bcmr-v2.schema.json",
+  "version": { "major": 0, "minor": 0, "patch": 1 },
+  "latestRevision": "2024-05-29T00:00:00.000Z",
+  "registryIdentity": {
+    "name": "vega initial token registry",
+    "description": "vega's initial BCMR.",
+  },
+  "identities": {
+    "a3da23aa442a3abb6fc0e633c2078ebea226a51bf3272956f42c1cc329bbb7f3": {
+      "2023-12-04T03:13:17.057Z": {
+        "name": "Zapit Reward Points",
+        "description": "Zapit's official reward token.",
+        "token": {
+          "category": "a3da23aa442a3abb6fc0e633c2078ebea226a51bf3272956f42c1cc329bbb7f3",
+          "decimals": 4,
+          "symbol": "ZRP"
+        },
+        "uris": {
+          "icon": "https://zapit.io/logo.png",
+          "web": "https://zapit.io/",
+          "chat": "https://t.me/zapit_io"
+        }
+      }
+    },
+    "1fe5245ab397bb7169cca286fa5f5086d0bdcd500039d7af7643b76a3353910d": {
+      "2023-05-19T12:52:01.637Z": {
+        "name": "Zaptians",
+        "description": "Zaptians, the team of zapt test an NFT on cashtokens",
+        "token": {
+          "category": "1fe5245ab397bb7169cca286fa5f5086d0bdcd500039d7af7643b76a3353910d",
+          "symbol": "ZAPTIANS"
+        },
+        "uris": {
+          "icon": "https://raw.githubusercontent.com/zapit-io/assets/master/logos/logo-white-medium.png",
+          "web": "https://zapit.io/",
+          "chat": "https://t.me/zapit_io"
+        }
+      }
+    },
+    "d4b47ded5247dad3b7db94f3c7a9584d44fd48cc2a6cd0300ebd33b8dd12ffb5": {
+      "2023-05-19T12:52:01.637Z": {
+        "name": "BCHians",
+        "description": "BCHians, the team of zapt test an NFT on cashtokens",
+        "token": {
+          "category": "d4b47ded5247dad3b7db94f3c7a9584d44fd48cc2a6cd0300ebd33b8dd12ffb5",
+          "symbol": "BCHians"
+        },
+        "uris": {
+          "icon": "https://www.zapit.io/zapit_logo.svg",
+          "web": "https://zapit.io/",
+          "chat": "https://t.me/zapit_io"
+        }
+      }
+    },
+    "d9ab24ed15a7846cc3d9e004aa5cb976860f13dac1ead05784ee4f4622af96ea": {
+      "2023-10-31T12:00:40.239Z": {
+        "name": "Furu Tokens",
+        "description": "FURU tokens are the official free-play tokens for the BCH Guru predictions platform.",
+        "token": {
+          "category": "d9ab24ed15a7846cc3d9e004aa5cb976860f13dac1ead05784ee4f4622af96ea",
+          "symbol": "FURU",
+          "decimals": 0
+        },
+        "uris": {
+          "icon": "ipfs://bafkreicqqq3tkq5tkbtg3vhbhw6urybothpoedsszuejs5baq2k25mhgvu",
+          "web": "https://bch.guru/",
+          "telegram": "https://t.me/bch_guru",
+          "twitter": "https://twitter.com/bch_guru",
+          "youtube": "https://www.youtube.com/@BCH_Guru",
+          "instagram": "https://www.instagram.com/bch_guru",
+          "reddit": "https://www.reddit.com/user/bch_guru"
+        }
+      }
+    },
+    "3270f6641a815709c9c03e75e189563c1bb2f0814d8644a2181da896fb3405d0":{
+	    "2024-03-26T18:23:22.000Z":{
+		    "name":"Lovetillion",
+		    "description":"Focused on building out decentralized blockchain, machine learning and data capabilities.",
+		    "token":{
+			    "category":"3270f6641a815709c9c03e75e189563c1bb2f0814d8644a2181da896fb3405d0",
+			    "decimals":8,
+			    "symbol":"XLV"
+		    },
+		    "uris":{
+			    "icon":"https://lovetillion.org/i/xlv.png",
+			    "web":"https://lovetillion.org/"
+		    }
+	    }
+    },
+    "f6677f3d3805d70949b375d36e094ff0ec9ece2a2cb1fde6d8b0e90b368f1f63":{
+	    "2024-05-01T06:00:22.000Z":{
+		    "name":"Bitcoin Cash TV",
+		    "description":"$BCHTV was created on the new Cash Tokens environment which allows creation of tokens on the Bitcoin Cash chain. 21 Million $BCHTV Tokens were created on August 1st, 2023.  $BCHTV are used as prizes given away to viewers during the Live Show.",
+		    "token":{
+			    "category":"f6677f3d3805d70949b375d36e094ff0ec9ece2a2cb1fde6d8b0e90b368f1f63",
+			    "decimals":8,
+			    "symbol":"$BCHTV"
+		    },
+		    "uris":{
+			    "icon":"https://i.imgur.com/KTJvSl7.png",
+			    "web":"https://bitcoincashtv.com/token"
+		    }
+	    }
+    }
+  },
+  "license": "CC0-1.0"
+}
