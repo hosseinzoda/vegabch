@@ -207,7 +207,7 @@ export default class CauldronFundTrade extends VegaCommand<typeof CauldronFundTr
       result_txoutput.broadcasted_txhash = txhash;
       this.log(`Transaction sent!`);
     } else {
-      this.log(`Transaction hash.`);
+      this.log(`Transaction:`);
       this.log(binToHex(result.txbin));
     }
     return result_txoutput;
