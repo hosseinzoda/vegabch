@@ -7,7 +7,8 @@ import type {
   VegaRegTestWifWallet as VegaRegTestWifWalletClass, VegaWallet as VegaWalletClass,
   VegaTestNetWallet as VegaTestNetWalletClass, VegaRegTestWallet as VegaRegTestWalletClass
 } from './vega-wallets.js';
-import { NATIVE_BCH_TOKEN_ID, TokenId } from 'cashlab';
+import { NATIVE_BCH_TOKEN_ID, TokenId, common as cashlab_common } from 'cashlab';
+const { convertFractionDenominator } = cashlab_common;
 
 let VegaWifWallet: typeof VegaWifWalletClass, VegaTestNetWifWallet: typeof VegaTestNetWifWalletClass, VegaRegTestWifWallet: typeof VegaRegTestWifWalletClass, VegaWallet: typeof VegaWalletClass, VegaTestNetWallet: typeof VegaTestNetWalletClass, VegaRegTestWallet: typeof VegaRegTestWalletClass;
 const requireVegaWallets = async () => {
@@ -132,15 +133,27 @@ export const tradeResultFromJSON = (data: any): cauldron.TradeResult => {
 };
 
 export const bigIntToDecString = (value: bigint, decimals: number): string => {
-  return fractionToDecString({ numerator: value, denominator: 10n ** BigInt(decimals) });
+  const denominator = 10n ** BigInt(decimals);
+  const digits = value / denominator;
+  const dec = (value % denominator)+'';
+  return digits + (dec.length > 0 ? '.' + '0'.repeat(decimals - dec.length) + dec :  '');
 };
 
-export const fractionToDecString = (value: Fraction): string => {
-  const digits = value.numerator / value.denominator;
-  const dp = value.numerator - (digits * value.denominator);
-  return digits + (dp > 0 ? '.' + dp :  '');
+const decstring_parse_pttrn = /^([0-9]+)(\.[0-9]+)?$/;
+export const bigIntFromDecString = (value: string, decimals: number): bigint => {
+  const match = value.match(decstring_parse_pttrn);
+  if (!match) {
+    throw new Error('Expecting a number! got: ' + value);
+  }
+  if (match[2] != null && match[2].length - 1 > decimals) {
+    throw new Error('Expecting a number with up to ' + decimals + ' decimal numbers');
+  }
+  return BigInt(match[1] as string) * (10n ** BigInt(decimals)) + BigInt((match[2] as string).slice(1));
 };
 
+export const fractionToDecString = (value: Fraction, decimals: number): string => {
+  return bigIntToDecString(convertFractionDenominator(value, 10n ** BigInt(decimals)).numerator, decimals)
+};
 
 const hexstring_token_id_pttrn = /^[0-9a-f]{64}$/;
 export const isAValidNonNativeTokenId = (token_id: string): boolean => {

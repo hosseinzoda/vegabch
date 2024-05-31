@@ -1,6 +1,6 @@
 import { Args, Flags } from '@oclif/core';
 import VegaCommand, { VegaCommandOptions } from '../../lib/vega-command.js';
-import { convertTradeResultToJSON, fractionToDecString, BCMRIndexer, resolveArgRefTokenAToken } from '../../lib/util.js';
+import { convertTradeResultToJSON, fractionToDecString, BCMRIndexer, resolveArgRefTokenAToken, getNativeBCHTokenInfo, bigIntToDecString, bigIntFromDecString } from '../../lib/util.js';
 import { libauth, cauldron, TokenId, NATIVE_BCH_TOKEN_ID, Fraction } from 'cashlab';
 import type { PoolV0Parameters, PoolV0, TradeResult, TradeTxResult } from 'cashlab/build/cauldron/types.js';
 import { writeFile } from 'node:fs/promises';
@@ -37,6 +37,11 @@ export default class CauldronConstructTrade extends VegaCommand<typeof CauldronC
       env: 'CAULDRON_INDEXER_ENDPOINT',
       required: true,
     }),
+    'decimal-amounts': Flags.boolean({
+      description: 'Use the defined decimals when displaying (excluding json outputs) & taking an amount as arguments.',
+      env: 'CAULDRON_INDEXER_ENDPOINT',
+      default: false,
+    }),
   };
   static vega_options: VegaCommandOptions = {
     require_wallet_selection: false,
@@ -51,6 +56,7 @@ export default class CauldronConstructTrade extends VegaCommand<typeof CauldronC
 
   async run (): Promise<any> {
     const { args, flags } = this;
+    const decimal_amounts_enabled = flags['decimal-amounts'];
     const bcmr_indexer = new BCMRIndexer(buildTokensBCMRFromTokensIdentity(await this.getTokensIdentity()));
     const supply_token_id: TokenId = resolveArgRefTokenAToken(args.supply_token, bcmr_indexer);
     const demand_token_id: TokenId = resolveArgRefTokenAToken(args.demand_token, bcmr_indexer);
@@ -60,10 +66,24 @@ export default class CauldronConstructTrade extends VegaCommand<typeof CauldronC
     if (args.supply_token != NATIVE_BCH_TOKEN_ID && args.demand_token != NATIVE_BCH_TOKEN_ID) {
       throw new Error('Can only perform trades with native BCH as one side of the trade.');
     }
+
+    const supply_token_identity = supply_token_id != NATIVE_BCH_TOKEN_ID ? bcmr_indexer.getTokenCurrentIdentity(supply_token_id) : null;
+    const supply_token_info = supply_token_id == NATIVE_BCH_TOKEN_ID  ? getNativeBCHTokenInfo() : supply_token_identity?.token;
+
+    const demand_token_identity = demand_token_id != NATIVE_BCH_TOKEN_ID ? bcmr_indexer.getTokenCurrentIdentity(demand_token_id) : null;
+    const demand_token_info = demand_token_id == NATIVE_BCH_TOKEN_ID  ? getNativeBCHTokenInfo() : demand_token_identity?.token;
+
+    const supply_decimals = supply_token_info?.decimals != null && supply_token_info.decimals > 0 ? supply_token_info.decimals : 0;
+    const demand_decimals = demand_token_info?.decimals != null && demand_token_info.decimals > 0 ? demand_token_info.decimals : 0;
+
     const exlab = new cauldron.ExchangeLab();
     let demand_amount: bigint;
     try {
-      demand_amount = BigInt(args.demand_amount);
+      if (decimal_amounts_enabled) {
+        demand_amount = bigIntFromDecString(args.demand_amount, demand_decimals);
+      } else {
+        demand_amount = BigInt(args.demand_amount);
+      }
     } catch (err) {
       throw new Error('Expecting demand_amount to be an integer, got: ' + args.demand_amount);
     }
@@ -100,12 +120,20 @@ export default class CauldronConstructTrade extends VegaCommand<typeof CauldronC
     }
     const result: TradeResult = exlab.constractTradeBestRateForTargetAmount(supply_token_id, demand_token_id, demand_amount, input_pools);
     this.log('Summary');
-    this.log(' Supply token id: ' + supply_token_id);
-    this.log(' Demand token id: ' + demand_token_id);
-    this.log(' Supply: ' + result.summary.supply);
-    this.log(' Demand: ' + result.summary.demand);
+    this.log(' Supply:: ' + [
+      (supply_token_info ? `(${supply_token_info.symbol})` : null),
+      (decimal_amounts_enabled ? `Defined decimals: ${supply_decimals}` : null),
+      `Token Id: ${supply_token_id}`
+    ].filter((a) => a != null).join(', '));
+    this.log(' Demand:: ' + [
+      (demand_token_info ? `(${demand_token_info.symbol})` : null),
+      (decimal_amounts_enabled ? `Defined decimals: ${demand_decimals}` : null),
+      `Token Id: ${demand_token_id}`
+    ].filter((a) => a != null).join(', '));
+    this.log(' Supply: ' + (decimal_amounts_enabled ? bigIntToDecString(result.summary.supply, supply_decimals) : result.summary.supply));
+    this.log(' Demand: ' + (decimal_amounts_enabled ? bigIntToDecString(result.summary.demand, demand_decimals) : result.summary.demand));
     this.log(' Trade fee: ' + result.summary.trade_fee);
-    this.log(' Rate: ' + fractionToDecString(result.summary.rate));
+    this.log(' Rate: ' + fractionToDecString(result.summary.rate, 10));
     this.log('');
     this.log(`The trade fee is included in the supply & demand, DO NOT deduct/add trade fee with supply or demand`);
     const result_json: any = convertTradeResultToJSON(result);
