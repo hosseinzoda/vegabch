@@ -38,10 +38,10 @@ USAGE
 * [`vegabch wallet:token-deposit-address`](#vegabch-wallettoken-deposit-address)
 * [`vegabch wallet:unpin`](#vegabch-walletunpin)
 
-* [`vegabch network:broadcast-transaction TRANSACTION NETWORK`](#vegabch-networkbroadcast-transaction-transaction-network)
-
 * [`vegabch token:list`](#vegabch-tokenlist)
 * [`vegabch token:register AUTHBASE NETWORK`](#vegabch-tokenregister-authbase-network)
+
+* [`vegabch network:broadcast-transaction TRANSACTION NETWORK`](#vegabch-networkbroadcast-transaction-transaction-network)
 
 * [`vegabch cauldron:construct-trade SUPPLY_TOKEN DEMAND_TOKEN DEMAND_AMOUNT [OUTPUT]`](#vegabch-cauldronconstruct-trade-supply_token-demand_token-demand_amount-output)
 * [`vegabch cauldron:fund-trade TRADE_FILE`](#vegabch-cauldronfund-trade-trade_file)
@@ -341,6 +341,35 @@ EXAMPLES
 
 _See code: [src/commands/token/register.ts](https://github.com/hosseinzoda/vegabch/blob/v0.0.1/src/commands/token/register.ts)_
 
+
+## `vegabch network:broadcast-transaction TRANSACTION NETWORK`
+
+Broadcast the transaction.
+
+```
+USAGE
+  $ vegabch network:broadcast-transaction TRANSACTION NETWORK [--json] [-c <value>]
+
+ARGUMENTS
+  TRANSACTION  A hexstring representation of the transaction.
+  NETWORK      (mainnet|testnet|regtest) [default: mainnet] Target network.
+
+FLAGS
+  -c, --vega-storage-file=<value>  [default: vega-storage.json] path to storage wallet file,
+                                   VEGA_STORAGE_FILE environment variable can be used to set the flag.
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Broadcast the transaction.
+
+EXAMPLES
+  $ vegabch network:broadcast-transaction
+```
+
+_See code: [src/commands/network/broadcast-transaction.ts](https://github.com/hosseinzoda/vegabch/blob/v0.0.1/src/commands/network/broadcast-transaction.ts)_
+
 ## `vegabch cauldron:construct-trade SUPPLY_TOKEN DEMAND_TOKEN DEMAND_AMOUNT [OUTPUT]`
 
 construct a cauldron trade, Uses multiple pools to acquire a target amount at the best rate. The trade demand will be equal or slightly greater than given demand-amount. The trade fee is deducted from trade demand if the BCH is demanded, In this case, To have a transaction with the demand amount to spend, the trade fee should be supplied.
@@ -440,5 +469,7 @@ FLAGS
 DESCRIPTION
   Display help for vegabch.
 ```
+
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.0.22/src/commands/help.ts)_
 
 <!-- commandsstop -->
