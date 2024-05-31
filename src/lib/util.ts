@@ -148,7 +148,7 @@ export const bigIntFromDecString = (value: string, decimals: number): bigint => 
   if (match[2] != null && match[2].length - 1 > decimals) {
     throw new Error('Expecting a number with up to ' + decimals + ' decimal numbers');
   }
-  return BigInt(match[1] as string) * (10n ** BigInt(decimals)) + BigInt((match[2] as string).slice(1));
+  return BigInt(match[1] as string) * (10n ** BigInt(decimals)) + BigInt((match[2] as string).slice(1) + ('0'.repeat(decimals - ((match[2] as string).length - 1))));
 };
 
 export const fractionToDecString = (value: Fraction, decimals: number): string => {
