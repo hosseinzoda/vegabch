@@ -29,13 +29,13 @@ USAGE
 <!-- usagestop -->
 # Commands
 <!-- commands -->
+* [`vegabch wallet:generate NAME TYPE NETWORK`](#vegabch-walletgenerate-name-type-network)
+* [`vegabch wallet:create NAME TYPE NETWORK`](#vegabch-walletcreate-name-type-network)
+* [`vegabch wallet:list`](#vegabch-walletlist)
 * [`vegabch wallet:balance`](#vegabch-walletbalance)
 * [`vegabch wallet:bch-deposit-address`](#vegabch-walletbch-deposit-address)
-* [`vegabch wallet:create NAME TYPE NETWORK`](#vegabch-walletcreate-name-type-network)
-* [`vegabch wallet:generate NAME TYPE NETWORK`](#vegabch-walletgenerate-name-type-network)
-* [`vegabch wallet:list`](#vegabch-walletlist)
-* [`vegabch wallet:pin NAME`](#vegabch-walletpin-name)
 * [`vegabch wallet:token-deposit-address`](#vegabch-wallettoken-deposit-address)
+* [`vegabch wallet:pin NAME`](#vegabch-walletpin-name)
 * [`vegabch wallet:unpin`](#vegabch-walletunpin)
 
 * [`vegabch token:list`](#vegabch-tokenlist)
@@ -47,6 +47,106 @@ USAGE
 * [`vegabch cauldron:fund-trade TRADE_FILE`](#vegabch-cauldronfund-trade-trade_file)
 
 * [`vegabch help [COMMAND]`](#vegabch-help-command)
+
+## `vegabch wallet:generate NAME TYPE NETWORK`
+
+generate a wallet
+
+```
+USAGE
+  $ vegabch wallet:generate NAME TYPE NETWORK [--json] [-c <value>]
+
+ARGUMENTS
+  NAME     A unique name for referencing the wallet once saved.
+  TYPE     (seed|wif) Type of the wallet.
+  NETWORK  (mainnet|testnet|regtest) [default: mainnet] Wallet's target network.
+
+FLAGS
+  -c, --vega-storage-file=<value>  [default: vega-storage.json] path to storage wallet file,
+                                   VEGA_STORAGE_FILE environment variable can be used to set the flag.
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  generate a wallet
+
+EXAMPLES
+  $ vegabch wallet:generate mywallet seed
+
+  $ vegabch wallet:generate mywallet wif testnet
+```
+
+_See code: [src/commands/wallet/generate.ts](https://github.com/hosseinzoda/vegabch/blob/v0.0.1/src/commands/wallet/generate.ts)_
+
+## `vegabch wallet:create NAME TYPE NETWORK`
+
+create a wallet
+
+```
+USAGE
+  $ vegabch wallet:create NAME TYPE NETWORK [--json] [-c <value>] [-m <value>] [-p <value>] [-s
+    <value>]
+
+ARGUMENTS
+  NAME     A unique name for referencing the wallet once saved.
+  TYPE     (seed|wif) Type of the wallet.
+  NETWORK  (mainnet|testnet|regtest) [default: mainnet] Wallet's target network.
+
+FLAGS
+  -c, --vega-storage-file=<value>  [default: vega-storage.json] path to storage wallet file,
+                                   VEGA_STORAGE_FILE environment variable can be used to set the flag.
+  --mnemonic=<value>               Wallet's mnemonic words, hd wallet's private key represented as
+                                   mnemonic words.
+  --derivation-path=<value>        Wallet's mnemonic words, hd wallet's private key represented as
+                                   mnemonic words.
+  --secret=<value>                 Wallet's private key represented as wallet import format (wif).
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  create a wallet
+
+EXAMPLES
+  $ vegabch wallet:create mywallet seed --mnemonic '<12 words>' --derivation-path "m/44'/0'/0'"
+
+  $ vegabch wallet:create mywallet seed mainnet --mnemonic '<12 words>'
+
+  $ vegabch wallet:create mywallet wif --secret '<the wif secret>'
+```
+
+_See code: [src/commands/wallet/create.ts](https://github.com/hosseinzoda/vegabch/blob/v0.0.1/src/commands/wallet/create.ts)_
+
+## `vegabch wallet:list`
+
+get list of all wallets.
+
+```
+USAGE
+  $ vegabch wallet:list [--json] [-c <value>] [-w <value>]
+
+FLAGS
+  -c, --vega-storage-file=<value>  [default: vega-storage.json] path to storage wallet file,
+                                   VEGA_STORAGE_FILE environment variable can be used to set the flag.
+  -w, --wallet=<wallet_name>       Select a wallet.
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  get list of all wallets.
+
+EXAMPLES
+  $ vegabch wallet:list
+
+FLAG DESCRIPTIONS
+  -w, --wallet=<wallet_name>  Select a wallet.
+
+    The name of wallet to use when it performs the command.
+```
+
+_See code: [src/commands/wallet/list.ts](https://github.com/hosseinzoda/vegabch/blob/v0.0.1/src/commands/wallet/list.ts)_
 
 ## `vegabch wallet:balance`
 
@@ -108,133 +208,6 @@ FLAG DESCRIPTIONS
 
 _See code: [src/commands/wallet/bch-deposit-address.ts](https://github.com/hosseinzoda/vegabch/blob/v0.0.1/src/commands/wallet/bch-deposit-address.ts)_
 
-## `vegabch wallet:create NAME TYPE NETWORK`
-
-create a wallet
-
-```
-USAGE
-  $ vegabch wallet:create NAME TYPE NETWORK [--json] [-c <value>] [-m <value>] [-p <value>] [-s
-    <value>]
-
-ARGUMENTS
-  NAME     A unique name for referencing the wallet once saved.
-  TYPE     (seed|wif) Type of the wallet.
-  NETWORK  (mainnet|testnet|regtest) [default: mainnet] Wallet's target network.
-
-FLAGS
-  -c, --vega-storage-file=<value>  [default: vega-storage.json] path to storage wallet file,
-                                   VEGA_STORAGE_FILE environment variable can be used to set the flag.
-  --mnemonic=<value>               Wallet's mnemonic words, hd wallet's private key represented as
-                                   mnemonic words.
-  --derivation-path=<value>        Wallet's mnemonic words, hd wallet's private key represented as
-                                   mnemonic words.
-  --secret=<value>                 Wallet's private key represented as wallet import format (wif).
-
-GLOBAL FLAGS
-  --json  Format output as json.
-
-DESCRIPTION
-  create a wallet
-
-EXAMPLES
-  $ vegabch wallet:create mywallet seed --mnemonic '<12 words>' --derivation-path "m/44'/0'/0'"
-
-  $ vegabch wallet:create mywallet seed mainnet --mnemonic '<12 words>'
-
-  $ vegabch wallet:create mywallet wif --secret '<the wif secret>'
-```
-
-_See code: [src/commands/wallet/create.ts](https://github.com/hosseinzoda/vegabch/blob/v0.0.1/src/commands/wallet/create.ts)_
-
-## `vegabch wallet:generate NAME TYPE NETWORK`
-
-generate a wallet
-
-```
-USAGE
-  $ vegabch wallet:generate NAME TYPE NETWORK [--json] [-c <value>]
-
-ARGUMENTS
-  NAME     A unique name for referencing the wallet once saved.
-  TYPE     (seed|wif) Type of the wallet.
-  NETWORK  (mainnet|testnet|regtest) [default: mainnet] Wallet's target network.
-
-FLAGS
-  -c, --vega-storage-file=<value>  [default: vega-storage.json] path to storage wallet file,
-                                   VEGA_STORAGE_FILE environment variable can be used to set the flag.
-
-GLOBAL FLAGS
-  --json  Format output as json.
-
-DESCRIPTION
-  generate a wallet
-
-EXAMPLES
-  $ vegabch wallet:generate mywallet seed
-
-  $ vegabch wallet:generate mywallet wif testnet
-```
-
-_See code: [src/commands/wallet/generate.ts](https://github.com/hosseinzoda/vegabch/blob/v0.0.1/src/commands/wallet/generate.ts)_
-
-## `vegabch wallet:list`
-
-get list of all wallets.
-
-```
-USAGE
-  $ vegabch wallet:list [--json] [-c <value>] [-w <value>]
-
-FLAGS
-  -c, --vega-storage-file=<value>  [default: vega-storage.json] path to storage wallet file,
-                                   VEGA_STORAGE_FILE environment variable can be used to set the flag.
-  -w, --wallet=<wallet_name>       Select a wallet.
-
-GLOBAL FLAGS
-  --json  Format output as json.
-
-DESCRIPTION
-  get list of all wallets.
-
-EXAMPLES
-  $ vegabch wallet:list
-
-FLAG DESCRIPTIONS
-  -w, --wallet=<wallet_name>  Select a wallet.
-
-    The name of wallet to use when it performs the command.
-```
-
-_See code: [src/commands/wallet/list.ts](https://github.com/hosseinzoda/vegabch/blob/v0.0.1/src/commands/wallet/list.ts)_
-
-## `vegabch wallet:pin NAME`
-
-pin a wallet
-
-```
-USAGE
-  $ vegabch wallet:pin NAME [--json] [-c <value>]
-
-ARGUMENTS
-  NAME  the wallet name to pin.
-
-FLAGS
-  -c, --vega-storage-file=<value>  [default: vega-storage.json] path to storage wallet file,
-                                   VEGA_STORAGE_FILE environment variable can be used to set the flag.
-
-GLOBAL FLAGS
-  --json  Format output as json.
-
-DESCRIPTION
-  pin a wallet
-
-EXAMPLES
-  $ vegabch wallet:pin mywallet
-```
-
-_See code: [src/commands/wallet/pin.ts](https://github.com/hosseinzoda/vegabch/blob/v0.0.1/src/commands/wallet/pin.ts)_
-
 ## `vegabch wallet:token-deposit-address`
 
 Get a token deposit address for the given wallet.
@@ -264,6 +237,33 @@ FLAG DESCRIPTIONS
 ```
 
 _See code: [src/commands/wallet/token-deposit-address.ts](https://github.com/hosseinzoda/vegabch/blob/v0.0.1/src/commands/wallet/token-deposit-address.ts)_
+
+## `vegabch wallet:pin NAME`
+
+pin a wallet
+
+```
+USAGE
+  $ vegabch wallet:pin NAME [--json] [-c <value>]
+
+ARGUMENTS
+  NAME  the wallet name to pin.
+
+FLAGS
+  -c, --vega-storage-file=<value>  [default: vega-storage.json] path to storage wallet file,
+                                   VEGA_STORAGE_FILE environment variable can be used to set the flag.
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  pin a wallet
+
+EXAMPLES
+  $ vegabch wallet:pin mywallet
+```
+
+_See code: [src/commands/wallet/pin.ts](https://github.com/hosseinzoda/vegabch/blob/v0.0.1/src/commands/wallet/pin.ts)_
 
 ## `vegabch wallet:unpin`
 

@@ -30,6 +30,7 @@ export type Flags<T extends typeof Command> = Interfaces.InferredFlags<typeof Ve
 export type Args<T extends typeof Command> = Interfaces.InferredArgs<T['args']>
 
 export type VegaCommandOptions = {
+  require_mainnet?: boolean;
   require_wallet_selection?: boolean;
   require_network_provider?: boolean;
 };
@@ -132,15 +133,19 @@ export default abstract class VegaCommand<T extends typeof Command> extends Comm
     this.flags = flags as Flags<T>
     this.args = args as Args<T>
     this._vega_storage_filename = flags['vega-storage-file'];
-    if (this.ctor.vega_options.require_wallet_selection) {
+    const require_mainnet = this.ctor.vega_options.require_mainnet ||
+      this.ctor.vega_options.require_network_provider ||
+      this.ctor.vega_options.require_wallet_selection;
+    if (require_mainnet) {
+      await requireMainnet();
       await requireVegaWallets()
       if (this.ctor.vega_options.require_network_provider) {
-        await requireMainnet();
         setHandlerForGetNetworkProvider(getNetworkProvider as any);
       } else {
         setHandlerForGetNetworkProvider((network: Network): NetworkProvider => new DummyNetworkProvide(network));
+      }
     }
-
+    if (this.ctor.vega_options.require_wallet_selection) {
       let wallet_name = flags['wallet'];
       if (!wallet_name) {
         wallet_name = await this.getPinnedWalletName()

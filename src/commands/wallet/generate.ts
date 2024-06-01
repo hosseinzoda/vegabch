@@ -1,5 +1,5 @@
 import { Args } from '@oclif/core';
-import VegaCommand from '../../lib/vega-command.js';
+import VegaCommand, { VegaCommandOptions } from '../../lib/vega-command.js';
 import type { Wallet, WalletTypeEnum, Network } from "mainnet-js";
 
 export default class GenerateWallet extends VegaCommand<typeof GenerateWallet> {
@@ -24,6 +24,9 @@ export default class GenerateWallet extends VegaCommand<typeof GenerateWallet> {
     }),
   };
   static flags = {
+  };
+  static vega_options: VegaCommandOptions = {
+    require_mainnet: true,
   };
 
   static description = 'generate a wallet';

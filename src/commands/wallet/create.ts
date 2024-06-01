@@ -1,5 +1,5 @@
 import { Args, Flags } from '@oclif/core';
-import VegaCommand from '../../lib/vega-command.js';
+import VegaCommand, { VegaCommandOptions } from '../../lib/vega-command.js';
 import { getWalletClassByTypeAndNetwork } from '../../lib/util.js';
 import type { Wallet } from "mainnet-js";
 
@@ -41,6 +41,9 @@ export default class CreateWallet extends VegaCommand<typeof CreateWallet> {
       helpLabel: '--secret',
       description: "Wallet's private key represented as wallet import format (wif).",
     }),
+  };
+  static vega_options: VegaCommandOptions = {
+    require_mainnet: true,
   };
 
   static description = 'create a wallet';
