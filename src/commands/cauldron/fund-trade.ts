@@ -31,6 +31,10 @@ export default class CauldronFundTrade extends VegaCommand<typeof CauldronFundTr
       description: `Will write the funded trade transaction in the txoutput. By default the transaction will be written to stdout if --json is enabled.`,
       allowStdin: false,
     }),
+    'allow-mixed-payout': Flags.boolean({
+      description: `An output in BCH can contain the native bch & a token. Enabling this will allow the payout to mix a token payout and the bch payout in one output.`,
+      default: false,
+    }),
   };
   static vega_options: VegaCommandOptions = {
     require_wallet_selection: true,
@@ -154,7 +158,7 @@ export default class CauldronFundTrade extends VegaCommand<typeof CauldronFundTr
     const payout_rules: PayoutRule[] = [
       {
         type: PayoutAmountRuleType.CHANGE,
-        allow_mixing_native_and_token: true,
+        allow_mixing_native_and_token: !!flags['allow-mixed-payout'],
         locking_bytecode: wallet_locking_bytecode,
       },
     ];

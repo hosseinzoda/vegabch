@@ -45,7 +45,7 @@
     "@oclif/core": "^3",
     "@oclif/plugin-help": "^6",
     "@oclif/plugin-plugins": "^5",
-    "cashlab": "^0.0.3",
+    "cashlab": "^0.0.4",
     "mainnet-js": "^2.3.13"
   },
   "devDependencies": {
