@@ -7,6 +7,7 @@ import { writeFile } from 'node:fs/promises';
 import CauldronIndexerRPCClient from '../../lib/cauldron-indexer-rpc-client.js'; 
 const { hexToBin, binToHex } = libauth;
 import { buildTokensBCMRFromTokensIdentity } from '../../lib/vega-file-storage-provider.js';
+import type { Network } from 'mainnet-js';
 
 export default class CauldronConstructTrade extends VegaCommand<typeof CauldronConstructTrade> {
   static args = {
@@ -42,6 +43,16 @@ export default class CauldronConstructTrade extends VegaCommand<typeof CauldronC
       env: 'CAULDRON_INDEXER_ENDPOINT',
       default: false,
     }),
+    'txfee-per-byte': Flags.string({
+      description: 'Specify the txfee per byte in sats, By default the suggested tx fee will be used.',
+      required: false,
+    }),
+    network: Flags.string({
+      name: 'network',
+      description: "Network that will be used to broadcast the final transaction, This option is only used when txfee-per-byte is not defined. In that case the suggested fee from the network will be used.",
+      options: ['mainnet', 'testnet', 'regtest'],
+      default: 'mainnet',
+    }),
   };
   static vega_options: VegaCommandOptions = {
     require_wallet_selection: false,
@@ -76,16 +87,29 @@ export default class CauldronConstructTrade extends VegaCommand<typeof CauldronC
     const supply_decimals = supply_token_info?.decimals != null && supply_token_info.decimals > 0 ? supply_token_info.decimals : 0;
     const demand_decimals = demand_token_info?.decimals != null && demand_token_info.decimals > 0 ? demand_token_info.decimals : 0;
 
+
+    let txfee_per_byte: bigint;
+    if (flags['txfee-per-byte']) {
+      txfee_per_byte = BigInt(flags['txfee-per-byte'])
+    } else {
+      // load mainnet-js to use getRelayFee
+      const network_provider = await this.requireNetworkProvider(flags.network as Network);
+      txfee_per_byte = BigInt(Math.max(await network_provider.getRelayFee(), 1));
+    }
+    if (txfee_per_byte < 0n) {
+      throw new Error('txfee-per-byte should be a positive integer');
+    }
+
     const exlab = new cauldron.ExchangeLab();
-    let demand_amount: bigint;
-    try {
-      if (decimal_amounts_enabled) {
-        demand_amount = bigIntFromDecString(args.demand_amount, demand_decimals);
-      } else {
+    let demand_amount: bigint|null = null;
+    if (decimal_amounts_enabled) {
+      demand_amount = bigIntFromDecString(args.demand_amount, demand_decimals);
+    } else {
+      try {
         demand_amount = BigInt(args.demand_amount);
+      } catch (err) {
+        throw new Error('Expecting demand_amount to be an integer, got: ' + args.demand_amount, { cause: err });
       }
-    } catch (err) {
-      throw new Error('Expecting demand_amount to be an integer, got: ' + args.demand_amount);
     }
     if (demand_amount <= 0) {
       throw new Error('Expecting demand_amount to be greater than zero, got: ' + demand_amount);
@@ -118,8 +142,12 @@ export default class CauldronConstructTrade extends VegaCommand<typeof CauldronC
       };
       input_pools.push(pool);
     }
-    const result: TradeResult = exlab.constractTradeBestRateForTargetAmount(supply_token_id, demand_token_id, demand_amount, input_pools);
+    const t0 = performance.now();
+    const result: TradeResult = exlab.constractTradeBestRateForTargetAmount(supply_token_id, demand_token_id, demand_amount, input_pools, txfee_per_byte);
+    const t1 = performance.now();
     this.log('Summary');
+    this.log(` Build time: ${t1 - t0}`);
+    this.log(` Pool count: ${result.entries.length}`);
     this.log(' Supply:: ' + [
       (supply_token_info ? `(${supply_token_info.symbol})` : null),
       (decimal_amounts_enabled ? `Defined decimals: ${supply_decimals}` : null),

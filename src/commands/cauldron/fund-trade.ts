@@ -168,6 +168,7 @@ export default class CauldronFundTrade extends VegaCommand<typeof CauldronFundTr
     const result_txoutput: any = {
       txbin: binToHex(result.txbin),
       txfee: result.txfee+'',
+      pools_count: trade.entries.length,
       input_coins: input_coins.map((a) => ({
         outpoint: {
           txhash: binToHex(a.outpoint.txhash),
@@ -195,6 +196,7 @@ export default class CauldronFundTrade extends VegaCommand<typeof CauldronFundTr
       await writeFile(flags.txoutput, JSON.stringify(result_txoutput, null, 2));
     }
 
+    this.log('Pools count: ' + trade.entries.length);
     this.log(`txfee: ${result.txfee}`);
     this.log('Coins to spend.');
     for (const input_coin of input_coins) {

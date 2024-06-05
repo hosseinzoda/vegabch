@@ -52,6 +52,7 @@ export const selectWalletFlags = (): { [name: string]: any } => {
 
 export default abstract class VegaCommand<T extends typeof Command> extends Command {
   _timeout_and_interval_controller: TimeoutAndIntevalController;
+  _network_provider_fetched: boolean;
   // add the --json flag
   static enableJsonFlag = true
   static baseFlags = {
@@ -118,6 +119,7 @@ export default abstract class VegaCommand<T extends typeof Command> extends Comm
     super(argv, config);
     this._vega_storage_filename = '';
     this._timeout_and_interval_controller = new TimeoutAndIntevalController();
+    this._network_provider_fetched = false;
   }
   
   protected async init (): Promise<void> {
@@ -163,7 +165,7 @@ export default abstract class VegaCommand<T extends typeof Command> extends Comm
     return super.catch(err)
   }
   protected async finally(_: Error | undefined): Promise<any> {
-    if (this.ctor.vega_options.require_network_provider) {
+    if (this.ctor.vega_options.require_network_provider || this._network_provider_fetched) {
       await requireMainnet();
       await disconnectProviders()
     }
@@ -196,10 +198,16 @@ export default abstract class VegaCommand<T extends typeof Command> extends Comm
     return super.logJson(prepareJson(json));
   }
 
+  async requireNetworkProvider (network: Network): Promise<NetworkProvider> {
+    await requireMainnet();
+    this._network_provider_fetched = true;
+    return getNetworkProvider(network)
+  }
   async getNetworkProvider (network: Network): Promise<NetworkProvider> {
     if (!this.ctor.vega_options.require_network_provider) {
       throw new Error('getNetworkProvider called, should have require_network_provider option enabled');
     }
+    this._network_provider_fetched = true;
     return getNetworkProvider(network)
   }
   async saveWallet (name: string, wallet_data: string): Promise<Wallet|any> {

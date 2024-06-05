@@ -139,7 +139,7 @@ export const bigIntToDecString = (value: bigint, decimals: number): string => {
   return digits + (dec.length > 0 ? '.' + '0'.repeat(decimals - dec.length) + dec :  '');
 };
 
-const decstring_parse_pttrn = /^([0-9]+)(\.[0-9]+)?$/;
+const decstring_parse_pttrn = /^([0-9]*)(\.[0-9]+)?$/;
 export const bigIntFromDecString = (value: string, decimals: number): bigint => {
   const match = value.match(decstring_parse_pttrn);
   if (!match) {
@@ -148,7 +148,7 @@ export const bigIntFromDecString = (value: string, decimals: number): bigint => 
   if (match[2] != null && match[2].length - 1 > decimals) {
     throw new Error('Expecting a number with up to ' + decimals + ' decimal numbers');
   }
-  return BigInt(match[1] as string) * (10n ** BigInt(decimals)) + BigInt((match[2] as string).slice(1) + ('0'.repeat(decimals - ((match[2] as string).length - 1))));
+  return BigInt((match[1] == '' ? '0' : match[1]) as string) * (10n ** BigInt(decimals)) + (match[2] != null ? BigInt(match[2].slice(1) + ('0'.repeat(decimals - (match[2].length - 1)))) : 0n);
 };
 
 export const fractionToDecString = (value: Fraction, decimals: number): string => {
