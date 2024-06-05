@@ -396,6 +396,13 @@ FLAGS
                                            used to set it.
       --decimal-amounts                    Use the defined decimals when displaying (excluding json
                                            outputs) & taking an amount as arguments.
+      --network=<option>                   [default: mainnet] Network that will be used to broadcast the
+                                           final transaction, This option is only used when
+                                           txfee-per-byte is not defined. In that case the suggested fee
+                                           from the network will be used.
+                                           <options: mainnet|testnet|regtest>
+      --txfee-per-byte=<value>             Specify the txfee per byte in sats, By default the suggested
+                                           tx fee will be used.
 GLOBAL FLAGS
   --json  Format output as json.
 
