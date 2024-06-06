@@ -1,7 +1,7 @@
 {
   "name": "vegabch",
   "description": "BCH defi trading tool",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "engines": {
     "node": ">=18.0.0"
   },
@@ -45,7 +45,7 @@
     "@oclif/core": "^3",
     "@oclif/plugin-help": "^6",
     "@oclif/plugin-plugins": "^5",
-    "cashlab": "^0.0.5",
+    "cashlab": "^0.0.6",
     "mainnet-js": "^2.3.13"
   },
   "devDependencies": {

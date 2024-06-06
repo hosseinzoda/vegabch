@@ -136,7 +136,7 @@ export const bigIntToDecString = (value: bigint, decimals: number): string => {
   const denominator = 10n ** BigInt(decimals);
   const digits = value / denominator;
   const dec = (value % denominator)+'';
-  return digits + (dec.length > 0 ? '.' + '0'.repeat(decimals - dec.length) + dec :  '');
+  return digits + (dec.length > 0 && decimals > 0 ? '.' + '0'.repeat(decimals - dec.length) + dec :  '');
 };
 
 const decstring_parse_pttrn = /^([0-9]*)(\.[0-9]+)?$/;
