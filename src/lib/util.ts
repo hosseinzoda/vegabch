@@ -55,33 +55,65 @@ export const getWalletClassByTypeAndNetwork = async (wallet_type: WalletTypeEnum
   return get_wallet_class();
 };
 
+export const convertCauldronPoolTradeEntryToJSON = (data: cauldron.PoolTrade): any => {
+  return {
+    pool: {
+      version: data.pool.version,
+      parameters: {
+        withdraw_pubkey_hash: binToHex(data.pool.parameters.withdraw_pubkey_hash),
+      },
+      outpoint: {
+        index: data.pool.outpoint.index,
+        txhash: binToHex(data.pool.outpoint.txhash),
+      },
+      output: {
+        locking_bytecode: binToHex(data.pool.output.locking_bytecode),
+        token: {
+          amount: data.pool.output.token.amount+'',
+          token_id: data.pool.output.token.token_id,
+        },
+        amount: data.pool.output.amount+'',
+      },
+    },
+    supply_token_id: data.supply_token_id,
+    demand_token_id: data.demand_token_id,
+    supply: data.supply+'',
+    demand: data.demand+'',
+    trade_fee: data.trade_fee+'',
+  };
+};
+
+export const cauldronPoolTradeFromJSON = (data: any): cauldron.PoolTrade => {
+  return {
+    pool: {
+      version: data.pool.version,
+      parameters: {
+        withdraw_pubkey_hash: hexToBin(data.pool.parameters.withdraw_pubkey_hash),
+      },
+      outpoint: {
+        index: data.pool.outpoint.index,
+        txhash: hexToBin(data.pool.outpoint.txhash),
+      },
+      output: {
+        locking_bytecode: hexToBin(data.pool.output.locking_bytecode),
+        token: {
+          amount: BigInt(data.pool.output.token.amount),
+          token_id: data.pool.output.token.token_id,
+        },
+        amount: BigInt(data.pool.output.amount),
+      },
+    },
+    supply_token_id: data.supply_token_id,
+    demand_token_id: data.demand_token_id,
+    supply: BigInt(data.supply),
+    demand: BigInt(data.demand),
+    trade_fee: BigInt(data.trade_fee),
+  };
+};
+
 export const convertTradeResultToJSON = (data: cauldron.TradeResult): any => {
   return {
-    entries: data.entries.map((a) => ({
-      pool: {
-        version: a.pool.version,
-        parameters: {
-          withdraw_pubkey_hash: binToHex(a.pool.parameters.withdraw_pubkey_hash),
-        },
-        outpoint: {
-          index: a.pool.outpoint.index,
-          txhash: binToHex(a.pool.outpoint.txhash),
-        },
-        output: {
-          locking_bytecode: binToHex(a.pool.output.locking_bytecode),
-          token: {
-            amount: a.pool.output.token.amount+'',
-            token_id: a.pool.output.token.token_id,
-          },
-          amount: a.pool.output.amount+'',
-        },
-      },
-      supply_token_id: a.supply_token_id,
-      demand_token_id: a.demand_token_id,
-      supply: a.supply+'',
-      demand: a.demand+'',
-      trade_fee: a.trade_fee+'',
-    })),
+    entries: data.entries.map((a) => convertCauldronPoolTradeEntryToJSON(a)),
     summary: {
       supply: data.summary.supply+'',
       demand: data.summary.demand+'',
@@ -95,31 +127,7 @@ export const convertTradeResultToJSON = (data: cauldron.TradeResult): any => {
 };
 export const tradeResultFromJSON = (data: any): cauldron.TradeResult => {
   return {
-    entries: data.entries.map((a: any) => ({
-      pool: {
-        version: a.pool.version,
-        parameters: {
-          withdraw_pubkey_hash: hexToBin(a.pool.parameters.withdraw_pubkey_hash),
-        },
-        outpoint: {
-          index: a.pool.outpoint.index,
-          txhash: hexToBin(a.pool.outpoint.txhash),
-        },
-        output: {
-          locking_bytecode: hexToBin(a.pool.output.locking_bytecode),
-          token: {
-            amount: BigInt(a.pool.output.token.amount),
-            token_id: a.pool.output.token.token_id,
-          },
-          amount: BigInt(a.pool.output.amount),
-        },
-      },
-      supply_token_id: a.supply_token_id,
-      demand_token_id: a.demand_token_id,
-      supply: BigInt(a.supply),
-      demand: BigInt(a.demand),
-      trade_fee: BigInt(a.trade_fee),
-    })),
+    entries: data.entries.map((a: any) => cauldronPoolTradeFromJSON(a)),
     summary: {
       supply: BigInt(data.summary.supply),
       demand: BigInt(data.summary.demand),

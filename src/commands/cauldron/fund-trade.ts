@@ -165,7 +165,8 @@ export default class CauldronFundTrade extends VegaCommand<typeof CauldronFundTr
     const exlab = new cauldron.ExchangeLab();
     const result: TradeTxResult = exlab.writeTradeTx(trade.entries, input_coins, payout_rules, null, txfee_per_byte);
     exlab.verifyTradeTx(result);
-    const result_txoutput: any = {
+
+    const result_txoutput: any[] = [{
       txbin: binToHex(result.txbin),
       txfee: result.txfee+'',
       pools_count: trade.entries.length,
@@ -183,18 +184,18 @@ export default class CauldronFundTrade extends VegaCommand<typeof CauldronFundTr
           amount: a.output.amount+'',
         },
       })),
-      payout_outputs: result.payout_outputs.map((a) => ({
-        locking_bytecode: binToHex(a.locking_bytecode),
-        token: a.token ? {
-          token_id: a.token.token_id,
-          amount: a.token.amount+'',
-        } : null,
-        amount: a.amount+'',
+      payouts_info: result.payouts_info.map((a) => ({
+        index: a.index,
+        output: {
+          locking_bytecode: binToHex(a.output.locking_bytecode),
+          token: a.output.token ? {
+            token_id: a.output.token.token_id,
+            amount: a.output.token.amount+'',
+          } : null,
+          amount: a.output.amount+'',
+        },
       })),
-    };
-    if (flags.txoutput && flags.txoutput != '-') {
-      await writeFile(flags.txoutput, JSON.stringify(result_txoutput, null, 2));
-    }
+    }];
 
     this.log('Pools count: ' + trade.entries.length);
     this.log(`txfee: ${result.txfee}`);
@@ -204,18 +205,24 @@ export default class CauldronFundTrade extends VegaCommand<typeof CauldronFundTr
       this.log(`   contains ${input_coin.output.amount} sats` + (input_coin.output.token ? ` & has tokens, token_id: ${input_coin.output.token.token_id}, amount: ${input_coin.output.token.amount}` : ''));
     }
     this.log('Payouts.');
-    for (const output of result.payout_outputs) {
+    for (const { index, output } of result.payouts_info) {
+      this.log(`- output index: ${index}`);
       this.log(`- locking bytecode: ${binToHex(output.locking_bytecode)}`);
       this.log(`   contains ${output.amount} sats` + (output.token ? ` & has tokens, token_id: ${output.token.token_id}, amount: ${output.token.amount}` : ''));
     }
     if (flags.broadcast) {
       const txhash = await wallet.submitTransaction(result.txbin, true);
-      result_txoutput.broadcasted_txhash = txhash;
+      (result_txoutput[0] as any).broadcasted_txhash = txhash;
       this.log(`Transaction sent!`);
     } else {
       this.log(`Transaction:`);
       this.log(binToHex(result.txbin));
     }
+
+    if (flags.txoutput && flags.txoutput != '-') {
+      await writeFile(flags.txoutput, JSON.stringify(result_txoutput, null, 2));
+    }
+
     return result_txoutput;
   }
 }

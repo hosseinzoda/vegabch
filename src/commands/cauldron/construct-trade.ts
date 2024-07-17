@@ -39,8 +39,7 @@ export default class CauldronConstructTrade extends VegaCommand<typeof CauldronC
       required: true,
     }),
     'decimal-amounts': Flags.boolean({
-      description: 'Use the defined decimals when displaying (excluding json outputs) & taking an amount as arguments.',
-      env: 'CAULDRON_INDEXER_ENDPOINT',
+      description: `Read/Write amounts as a decimal number, Using token's defined decimals (example: BCH has 8 decimals)`,
       default: false,
     }),
     'txfee-per-byte': Flags.string({
@@ -59,7 +58,7 @@ export default class CauldronConstructTrade extends VegaCommand<typeof CauldronC
     require_network_provider: false,
   };
 
-  static description = 'construct a cauldron trade, Uses multiple pools to acquire a target amount at the best rate. The trade demand will be equal or slightly greater than given demand-amount. The trade fee is deducted from trade demand if the BCH is demanded, In this case, To have a transaction with the demand amount to spend, the trade fee should be supplied.';
+  static description = 'construct a cauldron trade, Uses multiple pools to acquire a target amount at the best rate. The trade demand will be equal or slightly greater than given demand-amount.';
 
   static examples = [
     `<%= config.bin %> <%= command.id %>`,
