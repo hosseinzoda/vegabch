@@ -21,7 +21,7 @@ export default class CauldronConstructTrade extends VegaCommand<typeof CauldronC
       required: true,
       description: 'The token to request as the result of the trade, Expecting a token id or "BCH" for the native token.',
     }),
-    demand_amount: Args.string({
+    amount: Args.string({
       name: 'demand-amount',
       required: true,
       description: "Amount of tokens to acquire, Expecting an integer.",
@@ -33,6 +33,16 @@ export default class CauldronConstructTrade extends VegaCommand<typeof CauldronC
     }),
   };
   static flags = {
+    'target-demand': Flags.boolean({
+      description: 'The amount provided is target demand when this flag is enabled. (Enabled by default)',
+      required: false,
+      default: undefined,
+    }),
+    'target-supply': Flags.boolean({
+      description: 'The amount provided is target supply when this flag is enabled.',
+      required: false,
+      default: undefined,
+    }),
     'cauldron-indexer-endpoint': Flags.string({
       description: 'A url to the cauldron contracts indexer. CAULDRON_INDEXER_ENDPOINT environment variable can also be used to set it.',
       env: 'CAULDRON_INDEXER_ENDPOINT',
@@ -66,6 +76,15 @@ export default class CauldronConstructTrade extends VegaCommand<typeof CauldronC
 
   async run (): Promise<any> {
     const { args, flags } = this;
+    if (flags['target-demand'] == null && flags['target-supply'] == null) {
+      flags['target-demand'] = true;
+    }
+    if (flags['target-demand'] && flags['target-supply']) {
+      throw new Error('Only one of the following flags can be enabled: (' + ['target-demand', 'target-supply'].join(', ') + ')');
+    }
+    if (!flags['target-demand'] && !flags['target-supply']) {
+      throw new Error('One of the following flags should be enabled: (' + ['target-demand', 'target-supply'].join(', ') + ')');
+    }
     const decimal_amounts_enabled = flags['decimal-amounts'];
     const bcmr_indexer = new BCMRIndexer(buildTokensBCMRFromTokensIdentity(await this.getTokensIdentity()));
     const supply_token_id: TokenId = resolveArgRefTokenAToken(args.supply_token, bcmr_indexer);
@@ -100,18 +119,18 @@ export default class CauldronConstructTrade extends VegaCommand<typeof CauldronC
     }
 
     const exlab = new cauldron.ExchangeLab();
-    let demand_amount: bigint|null = null;
+    let amount: bigint|null = null;
     if (decimal_amounts_enabled) {
-      demand_amount = bigIntFromDecString(args.demand_amount, demand_decimals);
+      amount = bigIntFromDecString(args.amount, flags['target-demand'] ? demand_decimals : supply_decimals);
     } else {
       try {
-        demand_amount = BigInt(args.demand_amount);
+        amount = BigInt(args.amount);
       } catch (err) {
-        throw new Error('Expecting demand_amount to be an integer, got: ' + args.demand_amount, { cause: err });
+        throw new Error('Expecting amount to be an integer, got: ' + args.amount, { cause: err });
       }
     }
-    if (demand_amount <= 0) {
-      throw new Error('Expecting demand_amount to be greater than zero, got: ' + demand_amount);
+    if (amount <= 0) {
+      throw new Error('Expecting amount to be greater than zero, got: ' + amount);
     } 
     const indexer_client = new CauldronIndexerRPCClient(flags['cauldron-indexer-endpoint']);
     const non_native_token_id = supply_token_id == NATIVE_BCH_TOKEN_ID ? demand_token_id : supply_token_id;
@@ -142,7 +161,12 @@ export default class CauldronConstructTrade extends VegaCommand<typeof CauldronC
       input_pools.push(pool);
     }
     const t0 = performance.now();
-    const result: TradeResult = exlab.constractTradeBestRateForTargetAmount(supply_token_id, demand_token_id, demand_amount, input_pools, txfee_per_byte);
+    let result: TradeResult;
+    if (flags['target-demand']) {
+      result = exlab.constructTradeBestRateForTargetDemand(supply_token_id, demand_token_id, amount, input_pools, txfee_per_byte);
+    } else {
+      result = exlab.constructTradeBestRateForTargetSupply(supply_token_id, demand_token_id, amount, input_pools, txfee_per_byte);
+    }
     const t1 = performance.now();
     this.log('Summary');
     this.log(` Build time: ${t1 - t0}`);
@@ -159,7 +183,8 @@ export default class CauldronConstructTrade extends VegaCommand<typeof CauldronC
     ].filter((a) => a != null).join(', '));
     this.log(' Supply: ' + (decimal_amounts_enabled ? bigIntToDecString(result.summary.supply, supply_decimals) : result.summary.supply));
     this.log(' Demand: ' + (decimal_amounts_enabled ? bigIntToDecString(result.summary.demand, demand_decimals) : result.summary.demand));
-    this.log(' Trade fee: ' + result.summary.trade_fee);
+    const bch_token_info = getNativeBCHTokenInfo();
+    this.log(' Trade fee: ' + bigIntToDecString(result.summary.trade_fee, bch_token_info.decimals) + ' ' + bch_token_info.symbol);
     this.log(' Rate: ' + fractionToDecString(result.summary.rate, 10));
     this.log('');
     this.log(`The trade fee is included in the supply & demand, DO NOT deduct/add trade fee with supply or demand`);

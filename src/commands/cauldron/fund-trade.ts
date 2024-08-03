@@ -1,12 +1,19 @@
 import { Args, Flags } from '@oclif/core';
 import VegaCommand, { VegaCommandOptions, selectWalletFlags } from '../../lib/vega-command.js';
-import { tradeResultFromJSON } from '../../lib/util.js';
+import { tradeResultFromJSON, BCMRIndexer, bigIntToDecString } from '../../lib/util.js';
+import { buildTokensBCMRFromTokensIdentity } from '../../lib/vega-file-storage-provider.js';
 import type { Wallet, UtxoI, TokenI } from 'mainnet-js';
-import { libauth, common as cashlab_common, cauldron, PayoutRule, SpendableCoin, TokenId, Fraction, NATIVE_BCH_TOKEN_ID, PayoutAmountRuleType, SpendableCoinType } from 'cashlab'
+import {
+  libauth, common as cashlab_common, cauldron,
+  PayoutRule, SpendableCoin, TokenId, Fraction, NATIVE_BCH_TOKEN_ID,
+  PayoutAmountRuleType, SpendableCoinType, BurnTokenException,
+} from 'cashlab'
 import type { PoolV0Parameters, PoolV0, TradeResult, TradeTxResult } from 'cashlab/build/cauldron/types.js';
 import { readFile, writeFile } from 'node:fs/promises';
 import CauldronIndexerRPCClient from '../../lib/cauldron-indexer-rpc-client.js'; 
 const { hexToBin, binToHex, privateKeyToP2pkhLockingBytecode } = libauth;
+
+const DEFAULT_DUST_TOKEN_MIN_IN_BCH = 800n;
 
 export default class CauldronFundTrade extends VegaCommand<typeof CauldronFundTrade> {
   static args = {
@@ -35,6 +42,10 @@ export default class CauldronFundTrade extends VegaCommand<typeof CauldronFundTr
       description: `An output in BCH can contain the native bch & a token. Enabling this will allow the payout to mix a token payout and the bch payout in one output.`,
       default: false,
     }),
+    'burn-dust-tokens': Flags.boolean({
+      description: `Burns dust tokens (instead of adding to payout) when enabled & allow-mixed-payout is disabled. Less than 800 sats worth of the token is considered as dust tokens. (The value of the token is based on the trades exchange rate).`,
+      default: false,
+    }),
   };
   static vega_options: VegaCommandOptions = {
     require_wallet_selection: true,
@@ -50,7 +61,9 @@ export default class CauldronFundTrade extends VegaCommand<typeof CauldronFundTr
   async run (): Promise<any> {
     const { args, flags } = this;
     const wallet: Wallet = this.getSelectedWallet();
+    const exlab = new cauldron.ExchangeLab();
     let trade: TradeResult | undefined = undefined;
+    const bcmr_indexer = new BCMRIndexer(buildTokensBCMRFromTokensIdentity(await this.getTokensIdentity()));
     { // parse trade guard
       let trade_json = '';
       if (args.trade_file == '-') {
@@ -68,10 +81,34 @@ export default class CauldronFundTrade extends VegaCommand<typeof CauldronFundTr
       }
       trade = tradeResultFromJSON(JSON.parse(trade_json));
     }
-    const tokens_balance: Array<{ token_id: string, value: bigint }> = [
+    const tokens_balance: Array<{ token_id: TokenId, value: bigint }> = [
       { token_id: NATIVE_BCH_TOKEN_ID, value: 0n }
     ];
+    const trade_sum_list: Array<{
+      supply_token_id: TokenId, demand_token_id: TokenId,
+      supply: bigint, demand: bigint
+    }> = [];
+    const rates: Array<{ token_id: TokenId, rate: Fraction }> = [];
     for (const entry of trade.entries) {
+      let trade_sum_entry = trade_sum_list.find((a) => a.supply_token_id == entry.supply_token_id && a.demand_token_id == entry.demand_token_id);
+      if (trade_sum_entry == null) {
+        trade_sum_entry = {
+          supply_token_id: entry.supply_token_id, demand_token_id: entry.demand_token_id,
+          supply: 0n, demand: 0n,
+        };
+        trade_sum_list.push(trade_sum_entry);
+      }
+      trade_sum_entry.supply += entry.supply;
+      trade_sum_entry.demand += entry.demand;
+      { // verify entries there's no other opposite trade
+        let other_trade_sum_entry = trade_sum_list.find((a) => a.supply_token_id == entry.demand_token_id);
+        if (other_trade_sum_entry == null) {
+          other_trade_sum_entry = trade_sum_list.find((a) => a.demand_token_id == entry.supply_token_id);
+        }
+        if (other_trade_sum_entry != null) {
+          throw new Error(`The trade may not contain opposed entries!`);
+        }
+      }
       { // add demand from balance as surplus
         let token_balance = tokens_balance.find((a) => a.token_id == entry.demand_token_id);
         if (token_balance == null) {
@@ -150,6 +187,43 @@ export default class CauldronFundTrade extends VegaCommand<typeof CauldronFundTr
         });
       }
     }
+    const mkPrepareShouldBurnCall = (callable: (token_id: TokenId, amount: bigint, value_in_bch: bigint) => void): ((token_id: TokenId, amount: bigint) => void)  =>{
+      const rate_cache: { [token_id: string]: bigint }  = {};
+      const rate_denominator = exlab.getRateDenominator();
+      const _getRate = (token_id: TokenId): bigint => {
+        if (token_id == NATIVE_BCH_TOKEN_ID) {
+          throw new Error(`should never occur!`);
+        }
+        if (typeof rate_cache[token_id] == 'bigint') {
+          return rate_cache[token_id] as bigint;
+        }
+        let rate: bigint | undefined;
+        { // when it supplies the token_id
+          const trade_sum_entry = trade_sum_list.find((a) => a.supply_token_id == token_id);
+          if (trade_sum_entry != null) {
+            rate = trade_sum_entry.demand * rate_denominator / trade_sum_entry.supply;
+          }
+        }
+        { // when it demands the token_id
+          const trade_sum_entry = trade_sum_list.find((a) => a.demand_token_id == token_id);
+          if (trade_sum_entry != null) {
+            rate = trade_sum_entry.supply * rate_denominator / trade_sum_entry.demand;
+          }
+        }
+        if (typeof rate == 'bigint') {
+          return rate_cache[token_id] = rate;
+        }
+        throw new Error('Unknown token!!, token_id: ' + token_id);
+      };
+      return (token_id: TokenId, amount: bigint): void => {
+        if (token_id == NATIVE_BCH_TOKEN_ID) {
+          callable(token_id, amount, amount);
+        } else {
+          const rate = _getRate(token_id)
+          callable(token_id, amount, amount * rate / rate_denominator);
+        }
+      };
+    };
     const network_provider = await this.getNetworkProvider(wallet.network);
     const txfee_per_byte: bigint = flags['txfee-per-byte'] ? BigInt(flags['txfee-per-byte']) : BigInt(Math.max(await network_provider.getRelayFee(), 1));
     if (txfee_per_byte < 0n) {
@@ -160,17 +234,34 @@ export default class CauldronFundTrade extends VegaCommand<typeof CauldronFundTr
         type: PayoutAmountRuleType.CHANGE,
         allow_mixing_native_and_token: !!flags['allow-mixed-payout'],
         locking_bytecode: wallet_locking_bytecode,
+        spending_parameters: {
+          type: SpendableCoinType.P2PKH,
+          key: wallet_private_key,
+        },
+        // @ts-ignore
+        shouldBurn: mkPrepareShouldBurnCall((token_id: TokenId, amount: bigint, value_in_bch: bigint): void => {
+          if (token_id != NATIVE_BCH_TOKEN_ID && flags['burn-dust-tokens'] && value_in_bch < DEFAULT_DUST_TOKEN_MIN_IN_BCH) {
+            throw new BurnTokenException();
+          }
+        }),
       },
     ];
-    const exlab = new cauldron.ExchangeLab();
-    const result: TradeTxResult = exlab.writeTradeTx(trade.entries, input_coins, payout_rules, null, txfee_per_byte);
-    exlab.verifyTradeTx(result);
+    let selected_input_coins: SpendableCoin[] = [];
+    const write_tx_controller = {
+      // @ts-ignore
+      async generateMiddleware (result: GenerateChainedTradeTxResult, grouped_entries: Array<{ supply_token_id: TokenId, demand_token_id: TokenId, list: PoolTrade[] }>, input_coins: SpendableCoin[]): Promise<GenerateChainedTradeTxResult> {
+        selected_input_coins = [ ...selected_input_coins, ...result.input_coins ];
+        return result;
+      },
+    };
+    const trade_tx_list: TradeTxResult[] = await exlab.writeChainedTradeTx(trade.entries, input_coins, payout_rules, null, txfee_per_byte, write_tx_controller);
+    for (const trade_tx of trade_tx_list) {
+      exlab.verifyTradeTx(trade_tx);
+    }
 
-    const result_txoutput: any[] = [{
-      txbin: binToHex(result.txbin),
-      txfee: result.txfee+'',
+    const result_txoutput: any = {
       pools_count: trade.entries.length,
-      input_coins: input_coins.map((a) => ({
+      input_coins: selected_input_coins.map((a) => ({
         outpoint: {
           txhash: binToHex(a.outpoint.txhash),
           index: a.outpoint.index,
@@ -184,43 +275,74 @@ export default class CauldronFundTrade extends VegaCommand<typeof CauldronFundTr
           amount: a.output.amount+'',
         },
       })),
-      payouts_info: result.payouts_info.map((a) => ({
-        index: a.index,
-        output: {
-          locking_bytecode: binToHex(a.output.locking_bytecode),
-          token: a.output.token ? {
-            token_id: a.output.token.token_id,
-            amount: a.output.token.amount+'',
-          } : null,
-          amount: a.output.amount+'',
-        },
-      })),
-    }];
-
-    this.log('Pools count: ' + trade.entries.length);
-    this.log(`txfee: ${result.txfee}`);
-    this.log('Coins to spend.');
-    for (const input_coin of input_coins) {
-      this.log(`- ${binToHex(input_coin.outpoint.txhash)}:${input_coin.outpoint.index}`);
-      this.log(`   contains ${input_coin.output.amount} sats` + (input_coin.output.token ? ` & has tokens, token_id: ${input_coin.output.token.token_id}, amount: ${input_coin.output.token.amount}` : ''));
-    }
-    this.log('Payouts.');
-    for (const { index, output } of result.payouts_info) {
-      this.log(`- output index: ${index}`);
-      this.log(`- locking bytecode: ${binToHex(output.locking_bytecode)}`);
-      this.log(`   contains ${output.amount} sats` + (output.token ? ` & has tokens, token_id: ${output.token.token_id}, amount: ${output.token.amount}` : ''));
-    }
-    if (flags.broadcast) {
-      const txhash = await wallet.submitTransaction(result.txbin, true);
-      (result_txoutput[0] as any).broadcasted_txhash = txhash;
-      this.log(`Transaction sent!`);
-    } else {
-      this.log(`Transaction:`);
-      this.log(binToHex(result.txbin));
-    }
+      transactions: trade_tx_list.map((trade_tx) => {
+        return {
+          txbin: binToHex(trade_tx.txbin),
+          txbin_size: trade_tx.txbin.length,
+          txfee: trade_tx.txfee+'',
+          input_count: trade_tx.libauth_generated_transaction.inputs.length,
+          output_count: trade_tx.libauth_generated_transaction.outputs.length,
+          token_burns: trade_tx.token_burns,
+          payouts_info: trade_tx.payouts_info.map((a) => ({
+            index: a.index,
+            output: {
+              locking_bytecode: binToHex(a.output.locking_bytecode),
+              token: a.output.token ? {
+                token_id: a.output.token.token_id,
+                amount: a.output.token.amount+'',
+              } : null,
+              amount: a.output.amount+'',
+            },
+          })),
+        };
+      }),
+    };
 
     if (flags.txoutput && flags.txoutput != '-') {
       await writeFile(flags.txoutput, JSON.stringify(result_txoutput, null, 2));
+    }
+
+    this.log('Pools count: ' + trade.entries.length);
+    this.log('Input coins:');
+    for (const input_coin of selected_input_coins) {
+      this.log(`- ${binToHex(input_coin.outpoint.txhash)}:${input_coin.outpoint.index}`);
+      this.log(`   contains ${input_coin.output.amount} sats` + (input_coin.output.token ? ` & has tokens, token_id: ${input_coin.output.token.token_id}, amount: ${input_coin.output.token.amount}` : ''));
+    }
+    this.log('Transactions: ');
+    let counter = 0;
+    for (const trade_tx of trade_tx_list) {
+      this.log('- tx: #' + (counter + 1));
+      this.log(`- txsize: ${trade_tx.txbin.length}`);
+      this.log(`- txfee: ${trade_tx.txfee}`);
+      if (trade_tx.token_burns.length > 0) {
+        this.log('- **** BURNS ****');
+        for (const entry of trade_tx.token_burns) {
+          const token_info = (entry.token_id != NATIVE_BCH_TOKEN_ID ? bcmr_indexer.getTokenCurrentIdentity(entry.token_id)?.token : null) || null;
+          const symbol = token_info == null ? entry.token_id : token_info.symbol;
+          const decimals = (token_info == null ? null : token_info.decimals) || 0;
+          const amount = bigIntToDecString(entry.amount, decimals);
+          this.log(`  + ${symbol}: ${amount},  decimals: ${decimals}`);
+        }
+      }
+      this.log('- Payouts:');
+      for (const { index, output } of trade_tx.payouts_info) {
+        this.log(`  + output index: ${index}`);
+        this.log(`  + locking bytecode: ${binToHex(output.locking_bytecode)}`);
+        this.log(`    contains ${output.amount} sats` + (output.token ? ` & has tokens, token_id: ${output.token.token_id}, amount: ${output.token.amount}` : ''));
+      }
+      this.log('');
+      counter++;
+    }
+    if (flags.broadcast) {
+      let counter = 0;
+      for (const trade_tx of trade_tx_list) {
+        await wallet.submitTransaction(trade_tx.txbin, true);
+        this.log(`Transaction #${counter+1} sent!`);
+        if (++counter < trade_tx_list.length) {
+          // send the next transaction with some delay
+          ;await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      }
     }
 
     return result_txoutput;

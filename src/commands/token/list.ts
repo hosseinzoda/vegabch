@@ -35,6 +35,7 @@ export default class TokenList extends VegaCommand<typeof TokenList> {
       this.log(`-------- ${token_info.symbol} --------`);
       this.log(`token_id: ${token_info.category}`);
       this.log(`name: ${current_identity.name}, symbol: ${token_info.symbol}`);
+      this.log(`decimals: ${token_info.decimals}`);
       this.log(`${current_identity.description}`);
       if (current_identity.uris) {
         this.log(`links::`)
