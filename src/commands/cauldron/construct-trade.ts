@@ -68,7 +68,7 @@ export default class CauldronConstructTrade extends VegaCommand<typeof CauldronC
     require_network_provider: false,
   };
 
-  static description = 'construct a cauldron trade, Uses multiple pools to acquire a target amount at the best rate. The trade demand will be equal or slightly greater than given demand-amount.';
+  static description = `construct a cauldron trade, Uses multiple pools to acquire a target amount at the best rate. When the target is demand, The trade's demand will be equal or slightly greater than the given amount. And when the target is supply, The trade's supply will be equal or slightly less than the given amount.`;
 
   static examples = [
     `<%= config.bin %> <%= command.id %>`,
