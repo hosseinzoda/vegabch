@@ -76,12 +76,15 @@ const curlGet = (link: string) => {
 export default class CauldronIndexerRPCClient {
 
   _endpoint: string;
-  _agent: http.Agent;
+  _agent_by_protocol: { [protocol: string]: http.Agent };
   constructor (endpoint: string) {
     this._endpoint = endpoint.replace(/\/+$/, '');
-    this._agent = new http.Agent({
-      keepAlive: true,
-    });
+    this._agent_by_protocol = {};
+    for (const protocol of ['http:','https:']) {
+      this._agent_by_protocol[protocol] = new (protocol == 'https:' ? https : http).Agent({
+        keepAlive: true,
+      });
+    }
   }
 
   _getRequest (path: string, queries: Array<[ string, string ]>): Promise<{ status_code: number, body_text: string, body: any, response: IncomingMessage }> {
@@ -101,7 +104,7 @@ export default class CauldronIndexerRPCClient {
     } else {
       return new Promise((resolve, reject) => {
         const conn = (link.startsWith('https://' ) ? https : http).request(link, {
-          agent: this._agent,
+          agent: this._agent_by_protocol[link.startsWith('https://' ) ? 'https:' : 'http:'],
         });
         conn.end();
         conn.on('response', (resp: IncomingMessage) => {
