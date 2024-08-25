@@ -282,7 +282,7 @@ export default class CauldronFundTrade extends VegaCommand<typeof CauldronFundTr
           txfee: trade_tx.txfee+'',
           input_count: trade_tx.libauth_generated_transaction.inputs.length,
           output_count: trade_tx.libauth_generated_transaction.outputs.length,
-          token_burns: trade_tx.token_burns,
+          token_burns: trade_tx.token_burns.map((a) => ({ token_id: a.token_id, amount: a.amount+'' })),
           payouts_info: trade_tx.payouts_info.map((a) => ({
             index: a.index,
             output: {
