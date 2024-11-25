@@ -1,6 +1,10 @@
 import { Args, Flags } from '@oclif/core';
 import VegaCommand, { VegaCommandOptions } from '../../lib/vega-command.js';
-import { convertTradeResultToJSON, fractionToDecString, BCMRIndexer, resolveArgRefTokenAToken, getNativeBCHTokenInfo, bigIntToDecString, bigIntFromDecString } from '../../lib/util.js';
+import {
+  convertTradeResultToJSON, fractionToDecString, BCMRIndexer, resolveArgRefTokenAToken,
+  getNativeBCHTokenInfo, bigIntToDecString, bigIntFromDecString,
+  parsePoolsFromRiftenLabCauldronIndexer
+} from '../../lib/util.js';
 import { libauth, cauldron, TokenId, NATIVE_BCH_TOKEN_ID, Fraction } from 'cashlab';
 import type { PoolV0Parameters, PoolV0, TradeResult, TradeTxResult } from 'cashlab/build/cauldron/types.js';
 import { writeFile } from 'node:fs/promises';
@@ -22,7 +26,7 @@ export default class CauldronConstructTrade extends VegaCommand<typeof CauldronC
       description: 'The token to request as the result of the trade, Expecting a token id or "BCH" for the native token.',
     }),
     amount: Args.string({
-      name: 'demand-amount',
+      name: 'amount',
       required: true,
       description: "Amount of tokens to acquire, Expecting an integer.",
     }),
@@ -54,7 +58,8 @@ export default class CauldronConstructTrade extends VegaCommand<typeof CauldronC
     }),
     'txfee-per-byte': Flags.string({
       description: 'Specify the txfee per byte in sats, By default the suggested tx fee will be used.',
-      required: false,
+      required: true,
+      default: '1',
     }),
     network: Flags.string({
       name: 'network',
@@ -106,14 +111,7 @@ export default class CauldronConstructTrade extends VegaCommand<typeof CauldronC
     const demand_decimals = demand_token_info?.decimals != null && demand_token_info.decimals > 0 ? demand_token_info.decimals : 0;
 
 
-    let txfee_per_byte: bigint;
-    if (flags['txfee-per-byte']) {
-      txfee_per_byte = BigInt(flags['txfee-per-byte'])
-    } else {
-      // load mainnet-js to use getRelayFee
-      const network_provider = await this.requireNetworkProvider(flags.network as Network);
-      txfee_per_byte = BigInt(Math.max(await network_provider.getRelayFee(), 1));
-    }
+    let txfee_per_byte: bigint = BigInt(flags['txfee-per-byte'])
     if (txfee_per_byte < 0n) {
       throw new Error('txfee-per-byte should be a positive integer');
     }
@@ -129,37 +127,12 @@ export default class CauldronConstructTrade extends VegaCommand<typeof CauldronC
         throw new Error('Expecting amount to be an integer, got: ' + args.amount, { cause: err });
       }
     }
-    if (amount <= 0) {
+    if (amount <= 0n) {
       throw new Error('Expecting amount to be greater than zero, got: ' + amount);
     } 
     const indexer_client = new CauldronIndexerRPCClient(flags['cauldron-indexer-endpoint']);
     const non_native_token_id = supply_token_id == NATIVE_BCH_TOKEN_ID ? demand_token_id : supply_token_id;
-    const indexed_pools = await indexer_client.getActivePoolsForToken(non_native_token_id);
-    const input_pools: PoolV0[] = [];
-    for (const indexed_pool of indexed_pools.active) {
-      const pool_params: PoolV0Parameters = {
-        withdraw_pubkey_hash: hexToBin(indexed_pool.owner_pkh),
-      };
-      // reconstruct pool's locking bytecode
-      const locking_bytecode = exlab.generatePoolV0LockingBytecode(pool_params);
-      const pool: PoolV0 = {
-        version: '0',
-        parameters: pool_params,
-        outpoint: {
-          index: indexed_pool.tx_pos,
-          txhash: hexToBin(indexed_pool.txid),
-        },
-        output: {
-          locking_bytecode,
-          token: {
-            amount: BigInt(indexed_pool.tokens),
-            token_id: indexed_pool.token_id,
-          },
-          amount: BigInt(indexed_pool.sats),
-        },
-      };
-      input_pools.push(pool);
-    }
+    const input_pools: PoolV0[] = parsePoolsFromRiftenLabCauldronIndexer(exlab, (await indexer_client.getActivePoolsForToken(non_native_token_id)).active);
     const t0 = performance.now();
     let result: TradeResult;
     if (flags['target-demand']) {

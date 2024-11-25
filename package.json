@@ -45,7 +45,7 @@
     "@oclif/core": "^3",
     "@oclif/plugin-help": "^6",
     "@oclif/plugin-plugins": "^5",
-    "cashlab": "^0.0.15",
+    "cashlab": "github:hosseinzoda/cashlab#beta",
     "jayson": "^4.1.1",
     "mainnet-js": "^2.3.13"
   },
@@ -63,6 +63,6 @@
     "typescript": "^5"
   },
   "volta": {
-    "node": "20.13.1"
+    "node": "20.18.0"
   }
 }

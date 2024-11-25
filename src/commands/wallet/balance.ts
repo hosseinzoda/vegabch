@@ -1,36 +1,9 @@
 import VegaCommand, { VegaCommandOptions, selectWalletFlags } from '../../lib/vega-command.js';
-import { BCMRIndexer, getNativeBCHTokenInfo, bigIntToDecString } from '../../lib/util.js';
+import { BCMRIndexer, getNativeBCHTokenInfo, bigIntToDecString, TokensBalanceDetail, tokensBalanceDetailFromUtxoList } from '../../lib/util.js';
 import { buildTokensBCMRFromTokensIdentity } from '../../lib/vega-file-storage-provider.js';
 import type { Wallet, UtxoI, TokenI } from 'mainnet-js';
 import { NATIVE_BCH_TOKEN_ID, TokenId } from 'cashlab';
 
-type TokensBalanceDetail = {
-  [ token_id: TokenId ]: {
-    confirmed_balance: bigint;
-    unconfirmed_balance: bigint;
-  };
-};
-const tokensBalanceDetailFromUtxoList = (utxo_list: UtxoI[]): TokensBalanceDetail => {
-  const result: TokensBalanceDetail = {};
-  for (const utxo of utxo_list) {
-    const token: TokenI | undefined = utxo.token;
-    if (token != null) {
-      const token_result = result[token.tokenId as TokenId] = result[token.tokenId as TokenId] || { confirmed_balance: 0n, unconfirmed_balance: 0n };
-      if (utxo.height != null && utxo.height > 0) { 
-        token_result.confirmed_balance += token.amount;
-      } else {
-        token_result.unconfirmed_balance += token.amount;
-      }
-    }
-    const bch_result = result[NATIVE_BCH_TOKEN_ID] = result[NATIVE_BCH_TOKEN_ID] || { confirmed_balance: 0n, unconfirmed_balance: 0n };
-    if (utxo.height != null && utxo.height > 0) { 
-      bch_result.confirmed_balance += BigInt(utxo.satoshis);
-    } else {
-      bch_result.unconfirmed_balance += BigInt(utxo.satoshis);
-    }
-  }
-  return result;
-};
 
 export default class WalletBalance extends VegaCommand<typeof WalletBalance> {
   static args = {

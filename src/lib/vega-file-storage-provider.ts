@@ -26,9 +26,13 @@ export type TokensIdentity = {
     history: IdentityHistory;
   };
 };
+export type WalletSettings = {
+  [setting_name: string]: string;
+};
 export type VegaFileStorageData = FileStorageData & {
   tokens_identity: TokensIdentity;
   pinned_wallet_name?: string;
+  settings: WalletSettings;
 };
 
 export const initWalletsFileDataTokenIdentities = (): { [token_id: string]: { authbase: string, history: IdentityHistory } } => {
@@ -75,6 +79,7 @@ export default class VegaFileStorageProvider extends FileStorageProvider {
     return {
       wallets: [],
       tokens_identity: initWalletsFileDataTokenIdentities(),
+      settings: {},
     };
   }
   async setTokensIdentity (tokens_identity: TokensIdentity): Promise<void> {
@@ -89,6 +94,19 @@ export default class VegaFileStorageProvider extends FileStorageProvider {
       throw new Error('The file storage is not initialized!');
     }
     return this._file_data.tokens_identity;
+  }
+  async setWalletSettings (wallet_settings: WalletSettings) {
+    if (!this._file_data) {
+      throw new Error('The file storage is not initialized!');
+    }
+    this._file_data.settings = wallet_settings;
+    await this._save();
+  }
+  async getWalletSettings (): Promise<WalletSettings> {
+    if (!this._file_data) {
+      throw new Error('The file storage is not initialized!');
+    }
+    return this._file_data.settings || {};
   }
   async pinWallet (name: string | undefined): Promise<void> {
     if (!this._file_data) {

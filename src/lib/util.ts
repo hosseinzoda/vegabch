@@ -1,5 +1,4 @@
 import type { Wallet, WalletTypeEnum, Network } from 'mainnet-js';
-import { libauth, cauldron, Fraction } from 'cashlab';
 const { hexToBin, binToHex } = libauth;
 import type { Registry, IdentityHistory, IdentitySnapshot } from './schemas/bcmr-v2.schema.js';
 import type {
@@ -7,8 +6,14 @@ import type {
   VegaRegTestWifWallet as VegaRegTestWifWalletClass, VegaWallet as VegaWalletClass,
   VegaTestNetWallet as VegaTestNetWalletClass, VegaRegTestWallet as VegaRegTestWalletClass
 } from './vega-wallets.js';
-import { NATIVE_BCH_TOKEN_ID, TokenId, common as cashlab_common } from 'cashlab';
+import {
+  libauth, cauldron, Fraction, NATIVE_BCH_TOKEN_ID, TokenId,
+  SpendableCoin, SpendableCoinType, common as cashlab_common,
+} from 'cashlab';
+import type { PoolV0Parameters, PoolV0, TradeResult } from 'cashlab/build/cauldron/types.js';
 const { convertFractionDenominator } = cashlab_common;
+import type { ActivePoolEntry } from './cauldron-indexer-rpc-client.js';
+import type { UtxoI, TokenI } from 'mainnet-js';
 
 let VegaWifWallet: typeof VegaWifWalletClass, VegaTestNetWifWallet: typeof VegaTestNetWifWalletClass, VegaRegTestWifWallet: typeof VegaRegTestWifWalletClass, VegaWallet: typeof VegaWalletClass, VegaTestNetWallet: typeof VegaTestNetWalletClass, VegaRegTestWallet: typeof VegaRegTestWalletClass;
 const requireVegaWallets = async () => {
@@ -111,7 +116,7 @@ export const cauldronPoolTradeFromJSON = (data: any): cauldron.PoolTrade => {
   };
 };
 
-export const convertTradeResultToJSON = (data: cauldron.TradeResult): any => {
+export const convertTradeResultToJSON = (data: TradeResult): any => {
   return {
     entries: data.entries.map((a) => convertCauldronPoolTradeEntryToJSON(a)),
     summary: {
@@ -125,7 +130,7 @@ export const convertTradeResultToJSON = (data: cauldron.TradeResult): any => {
     },
   };
 };
-export const tradeResultFromJSON = (data: any): cauldron.TradeResult => {
+export const tradeResultFromJSON = (data: any): TradeResult => {
   return {
     entries: data.entries.map((a: any) => cauldronPoolTradeFromJSON(a)),
     summary: {
@@ -292,4 +297,166 @@ export class TimeoutAndIntevalController {
   }
 };
 
+export const convertElectrumUtxosToMainnetUtxos = (eutxo_list: any[]): UtxoI[] => {
+  return eutxo_list
+    .filter((a) => !a.has_token || !!a.token_data)
+    .map((eutxo) => ({
+      txid: eutxo.tx_hash,
+      vout: eutxo.tx_pos,
+      satoshis: eutxo.value,
+      height: eutxo.height,
+      token: eutxo.token_data
+        ? {
+          amount: BigInt(eutxo.token_data.amount),
+          tokenId: eutxo.token_data.category,
+          capability: eutxo.token_data.nft?.capability,
+          commitment: eutxo.token_data.nft?.commitment,
+        }
+        : undefined,
+    }));
+};
 
+export type TokensBalanceDetail = {
+  [ token_id: TokenId ]: {
+    confirmed_balance: bigint;
+    unconfirmed_balance: bigint;
+  };
+};
+export const tokensBalanceDetailFromUtxoList = (utxo_list: UtxoI[]): TokensBalanceDetail => {
+  const result: TokensBalanceDetail = {};
+  const bch_result = result[NATIVE_BCH_TOKEN_ID] = result[NATIVE_BCH_TOKEN_ID] || { confirmed_balance: 0n, unconfirmed_balance: 0n };
+  for (const utxo of utxo_list) {
+    const token: TokenI | undefined = utxo.token;
+    if (token != null) {
+      const token_result = result[token.tokenId as TokenId] = result[token.tokenId as TokenId] || { confirmed_balance: 0n, unconfirmed_balance: 0n };
+      if (utxo.height != null && utxo.height > 0) {
+        token_result.confirmed_balance += token.amount;
+      } else {
+        token_result.unconfirmed_balance += token.amount;
+      }
+    }
+    if (utxo.height != null && utxo.height > 0) {
+      bch_result.confirmed_balance += BigInt(utxo.satoshis);
+    } else {
+      bch_result.unconfirmed_balance += BigInt(utxo.satoshis);
+    }
+  }
+  return result;
+};
+
+export const parsePoolsFromRiftenLabCauldronIndexer = (exlab: cauldron.ExchangeLab, rl_pools: ActivePoolEntry[]): PoolV0[] => {
+  const pools: PoolV0[] = [];
+  for (const rl_pool of rl_pools) {
+    const pool_params: PoolV0Parameters = {
+      withdraw_pubkey_hash: hexToBin(rl_pool.owner_pkh),
+    };
+    // reconstruct pool's locking bytecode
+    const locking_bytecode = exlab.generatePoolV0LockingBytecode(pool_params);
+    const pool: PoolV0 = {
+      version: '0',
+      parameters: pool_params,
+      outpoint: {
+        index: rl_pool.tx_pos,
+        txhash: hexToBin(rl_pool.txid),
+      },
+      output: {
+        locking_bytecode,
+        token: {
+          amount: BigInt(rl_pool.tokens),
+          token_id: rl_pool.token_id,
+        },
+        amount: BigInt(rl_pool.sats),
+      },
+    };
+    pools.push(pool);
+  }
+  return pools;
+};
+
+export const parsePoolFromRostrumNodeData  = (exlab: cauldron.ExchangeLab, rn_pool: any): PoolV0 | null => {
+  if (rn_pool.is_withdrawn) {
+    return null
+  }
+  const pool_params: PoolV0Parameters = {
+    withdraw_pubkey_hash: hexToBin(rn_pool.pkh),
+  };
+  // reconstruct pool's locking bytecode
+  const locking_bytecode = exlab.generatePoolV0LockingBytecode(pool_params);
+  return {
+    version: '0',
+    parameters: pool_params,
+    outpoint: {
+      index: rn_pool.new_utxo_n,
+      txhash: hexToBin(rn_pool.new_utxo_txid),
+    },
+    output: {
+      locking_bytecode,
+      token: {
+        amount: BigInt(rn_pool.token_amount),
+        token_id: rn_pool.token_id,
+      },
+      amount: BigInt(rn_pool.sats),
+    },
+  };
+};
+
+export const walletP2pkhUtxosToSpendableCoins = (utxo_list: UtxoI[], wallet_locking_bytecode: Uint8Array, wallet_private_key: Uint8Array): SpendableCoin[] => {
+  return utxo_list.map((utxo) => ({
+    type: SpendableCoinType.P2PKH,
+    output: {
+      locking_bytecode: wallet_locking_bytecode,
+      token: utxo.token != null ? {
+        amount: utxo.token.amount,
+        token_id: utxo.token.tokenId,
+        nft: utxo.token.capability != null ? {
+          capability: utxo.token.capability,
+          commitment: utxo.token.commitment == null ? new Uint8Array(0) : hexToBin(utxo.token.commitment),
+        } : undefined,
+      } : undefined,
+      amount: BigInt(utxo.satoshis),
+    },
+    outpoint: {
+      index: utxo.vout,
+      txhash: hexToBin(utxo.txid),
+    },
+    key: wallet_private_key,
+  }));
+};
+
+export class InOrderSingleThreadedExecutionQueue {
+  private _queue: Array<{
+    resolve: (result: any) => void,
+    reject: (error: any) => void,
+    entrypoint: () => Promise<any>,
+  }>;
+  private _running: boolean;
+  constructor () {
+    this._queue = []
+    this._running = false
+  }
+  async _dequeue (): Promise<void> {
+    // lock the entrypoint to execute one at a time
+    if (this._running) {
+      return;
+    }
+    let item = this._queue.shift()
+    if (item) {
+      const { resolve, reject, entrypoint } = item
+      try {
+        this._running = true
+        resolve(await entrypoint())
+      } catch (err) {
+        reject(err)
+      } finally {
+        this._running = false
+        this._dequeue()
+      }
+    }
+  }
+  add (entrypoint: () => Promise<any>): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this._queue.push({ resolve, reject, entrypoint })
+      this._dequeue()
+    })
+  }
+}

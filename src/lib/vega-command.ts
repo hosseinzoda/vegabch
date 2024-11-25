@@ -4,7 +4,7 @@ import type {
   getNetworkProvider as getNetworkProviderFunction, BaseWallet as BaseWalletClass,
   disconnectProviders as disconnectProvidersFunction,
 } from 'mainnet-js';
-import VegaFileStorageProvider, { TokensIdentity } from './vega-file-storage-provider.js';
+import VegaFileStorageProvider, { TokensIdentity, WalletSettings } from './vega-file-storage-provider.js';
 import { getWalletClassByTypeAndNetwork, TimeoutAndIntevalController } from './util.js';
 import DummyNetworkProvide from './dummy-network-provider.js';
 import type {
@@ -33,6 +33,7 @@ export type VegaCommandOptions = {
   require_mainnet?: boolean;
   require_wallet_selection?: boolean;
   require_network_provider?: boolean;
+  optional_wallet_selection?: boolean;
 };
 
 export const selectWalletFlags = (): { [name: string]: any } => {
@@ -76,6 +77,7 @@ export default abstract class VegaCommand<T extends typeof Command> extends Comm
     return this.constructor as typeof VegaCommand
   }
 
+  _selected_wallet_name: string | undefined;
   _selected_wallet: Wallet | undefined;
 
   async getPinnedWalletName (): Promise<string | undefined> {
@@ -94,17 +96,39 @@ export default abstract class VegaCommand<T extends typeof Command> extends Comm
   async getTokensIdentity (): Promise<TokensIdentity> {
     let db = new VegaFileStorageProvider(this._vega_storage_filename);
     await db.init();
-    const tokens_identity = db.getTokensIdentity();
+    const tokens_identity = await db.getTokensIdentity();
     await db.close();
     return tokens_identity;
   }
   async storeTokensIdentity (tokens_identity: TokensIdentity): Promise<void> {
     let db = new VegaFileStorageProvider(this._vega_storage_filename);
     await db.init();
-    db.setTokensIdentity(tokens_identity);
+    await db.setTokensIdentity(tokens_identity);
     await db.close();
   }
-  
+  async getWalletSettings (): Promise<WalletSettings> {
+    let db = new VegaFileStorageProvider(this._vega_storage_filename);
+    await db.init();
+    const settings = await db.getWalletSettings();
+    await db.close();
+    return settings;
+  }
+  async storeWalletSettings (settings: WalletSettings): Promise<void> {
+    let db = new VegaFileStorageProvider(this._vega_storage_filename);
+    await db.init();
+    await db.setWalletSettings(settings);
+    await db.close();
+  }
+
+  hasSelectedWallet (): boolean {
+    return !!this._selected_wallet;
+  }
+  getSelectedWalletName (): string {
+    if (!this._selected_wallet_name) {
+      throw new Error('To use wallet selection, vega_options.require_wallet_selection should be set to true');
+    }
+    return this._selected_wallet_name;
+  }
   getSelectedWallet (): Wallet {
     if (!this._selected_wallet) {
       throw new Error('To use wallet selection, vega_options.require_wallet_selection should be set to true');
@@ -137,7 +161,8 @@ export default abstract class VegaCommand<T extends typeof Command> extends Comm
     this._vega_storage_filename = flags['vega-storage-file'];
     const require_mainnet = this.ctor.vega_options.require_mainnet ||
       this.ctor.vega_options.require_network_provider ||
-      this.ctor.vega_options.require_wallet_selection;
+      this.ctor.vega_options.require_wallet_selection ||
+      this.ctor.vega_options.optional_wallet_selection;
     if (require_mainnet) {
       await requireMainnet();
       await requireVegaWallets()
@@ -147,17 +172,20 @@ export default abstract class VegaCommand<T extends typeof Command> extends Comm
         setHandlerForGetNetworkProvider((network: Network): NetworkProvider => new DummyNetworkProvide(network));
       }
     }
-    if (this.ctor.vega_options.require_wallet_selection) {
+    if (this.ctor.vega_options.require_wallet_selection || this.ctor.vega_options.optional_wallet_selection) {
       let wallet_name = flags['wallet'];
       if (!wallet_name) {
         wallet_name = await this.getPinnedWalletName()
       }
-      if (!wallet_name) {
-        throw new Error('This command requires a wallet, To select a wallet either use wallet:pin to pin a wallet or use -w option to set the wallet name')
-      }
-      this._selected_wallet = await this.getWallet(wallet_name);
-      if (!this._selected_wallet) {
-        throw new Error('Selected wallet does not exists, name: ' + wallet_name);
+      if (!(this.ctor.vega_options.optional_wallet_selection && wallet_name == null)) {
+        if (!wallet_name) {
+          throw new Error('This command requires a wallet, To select a wallet either use wallet:pin to pin a wallet or use -w option to set the wallet name')
+        }
+        this._selected_wallet_name = wallet_name;
+        this._selected_wallet = await this.getWallet(wallet_name);
+        if (!this._selected_wallet) {
+          throw new Error('Selected wallet does not exists, name: ' + wallet_name);
+        }
       }
     }
   }
