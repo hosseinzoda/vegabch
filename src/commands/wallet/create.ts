@@ -34,7 +34,7 @@ export default class CreateWallet extends VegaCommand<typeof CreateWallet> {
     'derivation-path': Flags.string({
       char: 'p',
       helpLabel: '--derivation-path',
-      description: "Wallet's mnemonic words, hd wallet's private key represented as mnemonic words.",
+      description: "HD Derivation path to use. Format example: m/44'/145'/0'",
     }),
     secret: Flags.string({
       char: 's',
