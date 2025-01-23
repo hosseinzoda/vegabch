@@ -1,8 +1,5 @@
 import { Args, Flags } from '@oclif/core';
 import VegaCommand, { VegaCommandOptions } from '../../lib/vega-command.js';
-import { getWalletClassByTypeAndNetwork } from '../../lib/util.js';
-import type { Wallet } from "mainnet-js";
-
 
 export default class CreateWallet extends VegaCommand<typeof CreateWallet> {
   static args = {
@@ -43,7 +40,6 @@ export default class CreateWallet extends VegaCommand<typeof CreateWallet> {
     }),
   };
   static vega_options: VegaCommandOptions = {
-    require_mainnet: true,
   };
 
   static description = 'create a wallet';
@@ -55,17 +51,19 @@ export default class CreateWallet extends VegaCommand<typeof CreateWallet> {
   ];
 
   async run (): Promise<any> {
+    const { libauth } = await import('cashlab');
+    const { assertSuccess, decodePrivateKeyWif } = libauth;
     const { args, flags } = this;
     const wallet_name = args.name;
-    if (await this.walletExists(wallet_name)) {
+    const wallet_info = await this.callModuleMethod('wallet.info', wallet_name);
+    if (wallet_info != null) {
       this.error('A wallet with the following name already exists: ' + wallet_name);
       this.exit(1);
     }
-    const wallet_type = args.type;
+    const wallet_type = args.type == 'seed' ? 'single-address-seed' : 'wif';
     const network = args.network;
-    const wallet_class: typeof Wallet = await getWalletClassByTypeAndNetwork(wallet_type, network);
-    let wallet: Wallet;
-    if (wallet_type == 'seed') {
+    const params: any = {};
+    if (wallet_type == 'single-address-seed') {
       if (flags.secret) {
         this.error('Use of --secret is not accepted on creation of seed wallet.')
         this.exit(1)
@@ -74,7 +72,8 @@ export default class CreateWallet extends VegaCommand<typeof CreateWallet> {
         this.error('--mnemonic is required!, use --help to learn more.')
         this.exit(1)
       }
-      wallet = await wallet_class.fromSeed(flags.mnemonic, flags['derivation-path']);
+      params.seed_phrase = flags.mnemonic;
+      params.derivation_path = flags['derivation-path'];
     } else  if (wallet_type == 'wif') {
       if (flags.mnemonic || flags['derivation-path']) {
         this.error('Use of --mnemonic & --derivation-path is not accepted on creation of wif wallet.')
@@ -84,11 +83,11 @@ export default class CreateWallet extends VegaCommand<typeof CreateWallet> {
         this.error('--secret is required!, use --help to learn more.')
         this.exit(1)
       }
-      wallet = await wallet_class.fromWIF(flags.secret);
+      params.private_key = assertSuccess(decodePrivateKeyWif(flags.secret)).privateKey;
     } else {
       throw new Error('Unknown type: ' + wallet_type);
     }
-    this.saveWallet(wallet_name, wallet.toString());
+    await this.callModuleMethod('wallet.create', wallet_name, wallet_type, network, params);
     return { name: wallet_name };
   }
 }

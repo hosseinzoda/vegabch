@@ -1,5 +1,6 @@
 import VegaCommand, { VegaCommandOptions } from '../../lib/vega-command.js';
-import { TokensIdentity, buildTokensBCMRFromTokensIdentity } from '../../lib/vega-file-storage-provider.js';
+import { buildTokensBCMRFromTokensIdentity } from '../../lib/util.js';
+import type { TokensIdentity } from '../../lib/main/vega-file-storage-provider.js';
 import type { Registry, IdentitySnapshot, TokenCategory } from '../../lib/schemas/bcmr-v2.schema.js';
 
 export default class TokenList extends VegaCommand<typeof TokenList> {
@@ -17,7 +18,7 @@ export default class TokenList extends VegaCommand<typeof TokenList> {
   ];
 
   async run (): Promise<any> {
-    const tokens_identity: TokensIdentity = await this.getTokensIdentity();
+    const tokens_identity: TokensIdentity = await this.callModuleMethod('vega_storage.get_tokens_identity');
     const tokens_registry: Registry = buildTokensBCMRFromTokensIdentity(tokens_identity);
     const output: Array<IdentitySnapshot> = [];
     if (!tokens_registry.identities) {

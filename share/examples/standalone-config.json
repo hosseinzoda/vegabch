@@ -1,0 +1,6 @@
+{
+  "type": "standalone",
+  "vega_storage_file": "vega-storage.json",
+  "main_electrum_node": "wss://bch.imaginary.cash:50004",
+  "cauldron_indexer_node": "wss://rostrum.cauldron.quest:50004"
+}

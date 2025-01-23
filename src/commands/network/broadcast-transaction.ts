@@ -1,6 +1,5 @@
 import { Args } from '@oclif/core';
 import VegaCommand, { VegaCommandOptions } from '../../lib/vega-command.js';
-import type { Network } from 'mainnet-js';
 
 export default class BroadcastTransaction extends VegaCommand<typeof BroadcastTransaction> {
   static args = {
@@ -20,8 +19,6 @@ export default class BroadcastTransaction extends VegaCommand<typeof BroadcastTr
   static flags = {
   };
   static vega_options: VegaCommandOptions = {
-    require_wallet_selection: false,
-    require_network_provider: true,
   };
 
   static description = 'Broadcast the transaction.';
@@ -32,8 +29,10 @@ export default class BroadcastTransaction extends VegaCommand<typeof BroadcastTr
 
   async run (): Promise<any> {
     const { args } = this;
-    const network_provider = await this.getNetworkProvider(args.network as Network);
-    const txhash = await network_provider.sendRawTransaction(args.transaction, true);
+    if (!(await this.callModuleMethod('network.is_network_available', args.network))) {
+      throw new Error('network is not available, network_name: ' + args.network);
+    }
+    const { txhash } = await this.callModuleMethod('network.broadcast_transaction', args.transaction, true);
     this.log(`txhash: ${txhash}`)
     return { hash: txhash };
   }

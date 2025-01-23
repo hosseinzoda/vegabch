@@ -1,14 +1,7 @@
 import { Args } from '@oclif/core';
 import VegaCommand, { VegaCommandOptions } from '../../lib/vega-command.js';
-import type { TokensIdentity } from '../../lib/vega-file-storage-provider.js';
+import type { TokensIdentity } from '../../lib/main/vega-file-storage-provider.js';
 import type { Registry, IdentitySnapshot } from '../../lib/schemas/bcmr-v2.schema.js';
-import type { Network, AuthChain, AuthChainElement, BCMR as BCMRClassType } from 'mainnet-js';
-let BCMR: typeof BCMRClassType;
-const requireMainnet = async () => {
-  if (BCMR == null) {
-    ({ BCMR } = await import('mainnet-js'));
-  }
-};
 
 export default class TokenList extends VegaCommand<typeof TokenList> {
   static args = {
@@ -28,7 +21,6 @@ export default class TokenList extends VegaCommand<typeof TokenList> {
   static flags = {
   };
   static vega_options: VegaCommandOptions = {
-    require_network_provider: true,
   };
 
   static description = 'Add a BCMR token record from its baseauth.';
@@ -38,7 +30,8 @@ export default class TokenList extends VegaCommand<typeof TokenList> {
   ];
 
   async run (): Promise<any> {
-    const { args } = this;
+    throw new Error('token:register has been disabled in the beta version');
+    /* TODO:: re-implement this command
     await requireMainnet();
     const authbase_arg = args.authbase
     const chain: AuthChain = await BCMR.buildAuthChain({
@@ -53,13 +46,12 @@ export default class TokenList extends VegaCommand<typeof TokenList> {
     }
     const head: AuthChainElement = chain[chain.length - 1] as AuthChainElement;
     if (!head.httpsUrl || !head.contentHash) {
-      throw new Error('The authhead should contain an https url and content hash!')
+      throw new Error('The authhead should contain an https url and content hash!');
     }
     const output: any = { rows_affected: 0, registered_tokens: [] };
-    const registry = await BCMR.fetchMetadataRegistry(head.httpsUrl, head.contentHash)
-
+    const registry = await BCMR.fetchMetadataRegistry(head.httpsUrl, head.contentHash);
     const current_date = new Date();
-    const tokens_identity: TokensIdentity = await this.getTokensIdentity();
+    const tokens_identity: TokensIdentity = await this.callModuleMethod('vega_storage.get_tokens_identity');
     // register tokens, requires that authbase to be equal category
     for (const [ authbase, history ] of Object.entries(registry.identities || {})) {
       for (const identity of Object.values(history)) {
@@ -90,9 +82,10 @@ export default class TokenList extends VegaCommand<typeof TokenList> {
       output.rows_affected++;
     }
     if (output.rows_affected > 0) {
-      await this.storeTokensIdentity(tokens_identity);
+      await this.callModuleMethod('vega_storage.store_tokens_identity', tokens_identity);
     }
 
     return output;
+    */
   }
 }

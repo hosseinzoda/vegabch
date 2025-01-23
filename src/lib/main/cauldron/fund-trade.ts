@@ -131,7 +131,7 @@ export default async function fundTrade (exlab: cauldron.ExchangeLab, trade: Tra
       return result;
     },
   };
-  const trade_tx_list: TradeTxResult[] = await exlab.writeChainedTradeTx(trade.entries, selected_input_coins, payout_rules, null, txfee_per_byte, write_tx_controller);
+  const trade_tx_list: TradeTxResult[] = await exlab.createChainedTradeTx(trade.entries, selected_input_coins, payout_rules, null, txfee_per_byte, write_tx_controller);
   for (const trade_tx of trade_tx_list) {
     if (options.verify_transactions) {
       exlab.verifyTradeTx(trade_tx);

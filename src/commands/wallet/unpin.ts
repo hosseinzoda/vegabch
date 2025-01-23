@@ -13,6 +13,6 @@ export default class UnpinWallet extends VegaCommand<typeof UnpinWallet> {
   ];
 
   async run (): Promise<void> {
-    await this.pinWallet(undefined);
+    await this.callModuleMethod('wallet.pin_wallet', undefined);
   }
 }

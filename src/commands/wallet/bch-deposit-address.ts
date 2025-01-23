@@ -1,5 +1,4 @@
 import VegaCommand, { VegaCommandOptions, selectWalletFlags } from '../../lib/vega-command.js';
-import type { Wallet, UtxoI, TokenI } from "mainnet-js";
 
 export default class WalletBCHDepositAddress extends VegaCommand<typeof WalletBCHDepositAddress> {
   static args = {
@@ -9,7 +8,6 @@ export default class WalletBCHDepositAddress extends VegaCommand<typeof WalletBC
   };
   static vega_options: VegaCommandOptions = {
     require_wallet_selection: true,
-    require_network_provider: false,
   };
 
   static description = 'Get a bch deposit address for the given wallet.';
@@ -19,8 +17,15 @@ export default class WalletBCHDepositAddress extends VegaCommand<typeof WalletBC
   ];
 
   async run (): Promise<any> {
-    const wallet: Wallet = this.getSelectedWallet();
-    const address = wallet.getDepositAddress();
+    const { libauth } = await import('cashlab');
+    const { assertSuccess, lockingBytecodeToCashAddress } = libauth;
+    const info = await this.callModuleMethod('wallet.info', this.getSelectedWalletName());
+    const network_prefix = info.network === 'mainnet' ? 'bitcoincash' : 'bchtest';
+    const address = assertSuccess(lockingBytecodeToCashAddress({
+      bytecode: info.main.locking_bytecode,
+      prefix: network_prefix,
+      tokenSupport: false,
+    })).address;
     this.log(address);
     return { address };
   }

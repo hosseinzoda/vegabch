@@ -1,6 +1,5 @@
 import { Args } from '@oclif/core';
 import VegaCommand, { VegaCommandOptions } from '../../lib/vega-command.js';
-import type { Wallet, WalletTypeEnum, Network } from "mainnet-js";
 
 export default class GenerateWallet extends VegaCommand<typeof GenerateWallet> {
   static args = {
@@ -26,7 +25,6 @@ export default class GenerateWallet extends VegaCommand<typeof GenerateWallet> {
   static flags = {
   };
   static vega_options: VegaCommandOptions = {
-    require_mainnet: true,
   };
 
   static description = 'generate a wallet';
@@ -39,12 +37,14 @@ export default class GenerateWallet extends VegaCommand<typeof GenerateWallet> {
   async run (): Promise<any> {
     const { args } = this;
     const wallet_name = args.name;
-    if (await this.walletExists(wallet_name)) {
+    const wallet_type = args.type == 'seed' ? 'single-address-seed' : 'wif';
+    const network = args.network;
+    const wallet_info = await this.callModuleMethod('wallet.info', wallet_name);
+    if (wallet_info != null) {
       this.error('A wallet with the following name already exists: ' + wallet_name);
       this.exit(1);
     }
-    const wallet: Wallet = await this.generateWallet(args.type as WalletTypeEnum, args.network as Network)
-    this.saveWallet(wallet_name, wallet.toString());
+    await this.callModuleMethod('wallet.generate', wallet_name, wallet_type, network, {});
     return { name: wallet_name };
   }
 }

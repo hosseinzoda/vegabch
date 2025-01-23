@@ -1,66 +1,22 @@
-import type { Wallet, WalletTypeEnum, Network } from 'mainnet-js';
-const { hexToBin, binToHex } = libauth;
 import type { Registry, IdentityHistory, IdentitySnapshot } from './schemas/bcmr-v2.schema.js';
-import type {
-  VegaWifWallet as VegaWifWalletClass, VegaTestNetWifWallet as VegaTestNetWifWalletClass,
-  VegaRegTestWifWallet as VegaRegTestWifWalletClass, VegaWallet as VegaWalletClass,
-  VegaTestNetWallet as VegaTestNetWalletClass, VegaRegTestWallet as VegaRegTestWalletClass
-} from './vega-wallets.js';
-import {
-  libauth, cauldron, Fraction, NATIVE_BCH_TOKEN_ID, TokenId,
-  SpendableCoin, SpendableCoinType, common as cashlab_common,
-} from 'cashlab';
-import type { PoolV0Parameters, PoolV0, TradeResult } from 'cashlab/build/cauldron/types.js';
-const { convertFractionDenominator } = cashlab_common;
-import type { ActivePoolEntry } from './cauldron-indexer-rpc-client.js';
-import type { UtxoI, TokenI } from 'mainnet-js';
+import type { cauldron, Fraction, TokenId, UTXO } from 'cashlab';
+import { hexToBin, binToHex, convertFractionDenominator } from 'cashlab/build/common/util.js';
+import { NATIVE_BCH_TOKEN_ID } from 'cashlab/build/common/constants.js';
+import type { PoolV0Parameters, PoolV0, TradeResult, PoolTrade } from 'cashlab/build/cauldron/types.js';
+import type { TokensIdentity } from './main/vega-file-storage-provider.js';
 
-let VegaWifWallet: typeof VegaWifWalletClass, VegaTestNetWifWallet: typeof VegaTestNetWifWalletClass, VegaRegTestWifWallet: typeof VegaRegTestWifWalletClass, VegaWallet: typeof VegaWalletClass, VegaTestNetWallet: typeof VegaTestNetWalletClass, VegaRegTestWallet: typeof VegaRegTestWalletClass;
-const requireVegaWallets = async () => {
-  if (VegaWifWallet == null) {
-    ({ VegaWifWallet, VegaTestNetWifWallet, VegaRegTestWifWallet, VegaWallet, VegaTestNetWallet, VegaRegTestWallet } = await import('./vega-wallets.js'));
-  }
+export { hexToBin, binToHex } from 'cashlab/build/common/util.js';
+
+export const moriaTxResultSummaryJSON = (data: any): any => {
+  return {
+    txbin: binToHex(data.txbin),
+    txhash: binToHex(data.txhash),
+    txfee: data.txfee+'',
+    payouts: data.payouts.map(convertUTXOToJSON),
+  };
 };
 
-const wallet_class_map: { [type: string]: { [network: string]: () => typeof Wallet } } = {
-  wif: {
-    mainnet: () => {
-      return VegaWifWallet;
-    },
-    testnet: () => {
-      return VegaTestNetWifWallet;
-    },
-    regtest: () => {
-      return VegaRegTestWifWallet;
-    },
-  },
-  seed: {
-    mainnet: () => {
-      return VegaWallet;
-    },
-    testnet: () => {
-      return VegaTestNetWallet;
-    },
-    regtest: () => {
-      return VegaRegTestWallet;
-    },
-  },
-}
-
-export const getWalletClassByTypeAndNetwork = async (wallet_type: WalletTypeEnum | string, network: Network | string): Promise<typeof Wallet> => {
-  await requireVegaWallets()
-  const wallet_class_map_by_network = wallet_class_map[wallet_type];
-  if (!wallet_class_map_by_network) {
-    throw new Error(`unkown wallet type: ${wallet_type}`);
-  }
-  const get_wallet_class = wallet_class_map_by_network[network];
-  if (!get_wallet_class) {
-    throw new Error(`unkown network: ${network}`);
-  }
-  return get_wallet_class();
-};
-
-export const convertCauldronPoolTradeEntryToJSON = (data: cauldron.PoolTrade): any => {
+export const convertCauldronPoolTradeEntryToJSON = (data: PoolTrade): any => {
   return {
     pool: {
       version: data.pool.version,
@@ -88,7 +44,7 @@ export const convertCauldronPoolTradeEntryToJSON = (data: cauldron.PoolTrade): a
   };
 };
 
-export const cauldronPoolTradeFromJSON = (data: any): cauldron.PoolTrade => {
+export const cauldronPoolTradeFromJSON = (data: any): PoolTrade => {
   return {
     pool: {
       version: data.pool.version,
@@ -141,6 +97,50 @@ export const tradeResultFromJSON = (data: any): TradeResult => {
         numerator: BigInt(data.summary.rate.numerator),
         denominator: BigInt(data.summary.rate.denominator),
       },
+    },
+  };
+};
+
+export const convertUTXOToJSON = (utxo: UTXO): any => {
+  return {
+    block_height: utxo.block_height,
+    outpoint: {
+      index: utxo.outpoint.index,
+      txhash: binToHex(utxo.outpoint.txhash),
+    },
+    output: {
+      locking_bytecode: binToHex(utxo.output.locking_bytecode),
+      token: utxo.output.token != null ? {
+        amount: utxo.output.token.amount+'',
+        token_id: utxo.output.token.token_id,
+        nft: utxo.output.token.nft != null ? {
+          capability: utxo.output.token.nft.capability,
+          commitment: binToHex(utxo.output.token.nft.commitment),
+        } : undefined,
+      } : undefined,
+      amount: utxo.output.amount+'',
+    },
+  };
+};
+
+export const utxoFromJSON = (data: any): UTXO => {
+  return {
+    block_height: data.block_height,
+    outpoint: {
+      index: data.outpoint.index,
+      txhash: hexToBin(data.outpoint.txhash),
+    },
+    output: {
+      locking_bytecode: hexToBin(data.output.locking_bytecode),
+      token: data.output.token != null ? {
+        amount: BigInt(data.output.token.amount),
+        token_id: data.output.token.token_id,
+        nft: data.output.token.nft != null ? {
+          capability: data.output.token.nft.capability,
+          commitment: hexToBin(data.output.token.nft.commitment),
+        } : undefined,
+      } : undefined,
+      amount: BigInt(data.output.amount),
     },
   };
 };
@@ -297,81 +297,65 @@ export class TimeoutAndIntevalController {
   }
 };
 
-export const convertElectrumUtxosToMainnetUtxos = (eutxo_list: any[]): UtxoI[] => {
-  return eutxo_list
-    .filter((a) => !a.has_token || !!a.token_data)
-    .map((eutxo) => ({
-      txid: eutxo.tx_hash,
-      vout: eutxo.tx_pos,
-      satoshis: eutxo.value,
-      height: eutxo.height,
-      token: eutxo.token_data
-        ? {
-          amount: BigInt(eutxo.token_data.amount),
-          tokenId: eutxo.token_data.category,
-          capability: eutxo.token_data.nft?.capability,
-          commitment: eutxo.token_data.nft?.commitment,
-        }
-        : undefined,
-    }));
-};
-
-export type TokensBalanceDetail = {
-  [ token_id: TokenId ]: {
-    confirmed_balance: bigint;
-    unconfirmed_balance: bigint;
+export const parseElectrumUTXO = (eutxo: any): UTXO => {
+  if (eutxo.has_token && !eutxo.token_data) {
+    throw new Error('eutxo has_token = true and token_data is null');
+  }
+  return {
+    outpoint: { txhash: hexToBin(eutxo.tx_hash), index: eutxo.tx_pos },
+    output: {
+      locking_bytecode: typeof eutxo.locking_bytecode == 'string' ? binToHex(eutxo.locking_bytecode) : eutxo.locking_bytecode,
+      amount: BigInt(eutxo.value),
+      token: eutxo.token_data ? {
+        amount: BigInt(eutxo.token_data.amount),
+        token_id: eutxo.token_data.category,
+        nft: eutxo.token_data.nft ? {
+          capability: eutxo.token_data.nft.capability,
+          commitment: hexToBin(eutxo.token_data.nft.commitment),
+        } : undefined,
+      } : undefined,
+    },
+    block_height: eutxo.height > 0 ? eutxo.height : undefined,
   };
 };
-export const tokensBalanceDetailFromUtxoList = (utxo_list: UtxoI[]): TokensBalanceDetail => {
-  const result: TokensBalanceDetail = {};
-  const bch_result = result[NATIVE_BCH_TOKEN_ID] = result[NATIVE_BCH_TOKEN_ID] || { confirmed_balance: 0n, unconfirmed_balance: 0n };
+
+export type TokenBalanceDetail = {
+  token_id: TokenId;
+  confirmed_balance: bigint;
+  unconfirmed_balance: bigint;
+};
+export const tokensBalanceDetailFromUTXOList = (utxo_list: UTXO[]): TokenBalanceDetail[] => {
+  const bch_result = {
+    token_id: NATIVE_BCH_TOKEN_ID,
+    confirmed_balance: 0n,
+    unconfirmed_balance: 0n,
+  };
+  const result: TokenBalanceDetail[] = [ bch_result ];
   for (const utxo of utxo_list) {
-    const token: TokenI | undefined = utxo.token;
-    if (token != null) {
-      const token_result = result[token.tokenId as TokenId] = result[token.tokenId as TokenId] || { confirmed_balance: 0n, unconfirmed_balance: 0n };
-      if (utxo.height != null && utxo.height > 0) {
-        token_result.confirmed_balance += token.amount;
+    if (utxo.output.token != null) {
+      let token_result = result.find((a) => a.token_id == utxo.output.token?.token_id);
+      if (token_result == null) {
+        result.push(token_result = {
+          token_id: utxo.output.token.token_id,
+          confirmed_balance: 0n,
+          unconfirmed_balance: 0n,
+        });
+      }
+      if (utxo.block_height != null && utxo.block_height > 0) {
+        token_result.confirmed_balance += utxo.output.token.amount;
       } else {
-        token_result.unconfirmed_balance += token.amount;
+        token_result.unconfirmed_balance += utxo.output.token.amount;
       }
     }
-    if (utxo.height != null && utxo.height > 0) {
-      bch_result.confirmed_balance += BigInt(utxo.satoshis);
+    if (utxo.block_height != null && utxo.block_height > 0) {
+      bch_result.confirmed_balance += BigInt(utxo.output.amount);
     } else {
-      bch_result.unconfirmed_balance += BigInt(utxo.satoshis);
+      bch_result.unconfirmed_balance += BigInt(utxo.output.amount);
     }
   }
   return result;
 };
 
-export const parsePoolsFromRiftenLabCauldronIndexer = (exlab: cauldron.ExchangeLab, rl_pools: ActivePoolEntry[]): PoolV0[] => {
-  const pools: PoolV0[] = [];
-  for (const rl_pool of rl_pools) {
-    const pool_params: PoolV0Parameters = {
-      withdraw_pubkey_hash: hexToBin(rl_pool.owner_pkh),
-    };
-    // reconstruct pool's locking bytecode
-    const locking_bytecode = exlab.generatePoolV0LockingBytecode(pool_params);
-    const pool: PoolV0 = {
-      version: '0',
-      parameters: pool_params,
-      outpoint: {
-        index: rl_pool.tx_pos,
-        txhash: hexToBin(rl_pool.txid),
-      },
-      output: {
-        locking_bytecode,
-        token: {
-          amount: BigInt(rl_pool.tokens),
-          token_id: rl_pool.token_id,
-        },
-        amount: BigInt(rl_pool.sats),
-      },
-    };
-    pools.push(pool);
-  }
-  return pools;
-};
 
 export const parsePoolFromRostrumNodeData  = (exlab: cauldron.ExchangeLab, rn_pool: any): PoolV0 | null => {
   if (rn_pool.is_withdrawn) {
@@ -398,29 +382,6 @@ export const parsePoolFromRostrumNodeData  = (exlab: cauldron.ExchangeLab, rn_po
       amount: BigInt(rn_pool.sats),
     },
   };
-};
-
-export const walletP2pkhUtxosToSpendableCoins = (utxo_list: UtxoI[], wallet_locking_bytecode: Uint8Array, wallet_private_key: Uint8Array): SpendableCoin[] => {
-  return utxo_list.map((utxo) => ({
-    type: SpendableCoinType.P2PKH,
-    output: {
-      locking_bytecode: wallet_locking_bytecode,
-      token: utxo.token != null ? {
-        amount: utxo.token.amount,
-        token_id: utxo.token.tokenId,
-        nft: utxo.token.capability != null ? {
-          capability: utxo.token.capability,
-          commitment: utxo.token.commitment == null ? new Uint8Array(0) : hexToBin(utxo.token.commitment),
-        } : undefined,
-      } : undefined,
-      amount: BigInt(utxo.satoshis),
-    },
-    outpoint: {
-      index: utxo.vout,
-      txhash: hexToBin(utxo.txid),
-    },
-    key: wallet_private_key,
-  }));
 };
 
 export class InOrderSingleThreadedExecutionQueue {
@@ -460,3 +421,39 @@ export class InOrderSingleThreadedExecutionQueue {
     })
   }
 }
+
+export function deferredPromise<T> (): Promise<{ promise: Promise<T>, resolve: (result: T) => void, reject: (error: any) => void }> {
+  return new Promise(function (onready) {
+    let promise: Promise<T> | null = null, resolve: ((result: T) => void) | null = null, reject: ((error: any) => void) | null = null, did_call_ready: boolean = false;
+    promise = new Promise((_resolve, _reject) => {
+      resolve = _resolve;
+      reject = _reject;
+      if (promise && !did_call_ready) {
+        did_call_ready = true;
+        onready({promise,resolve,reject});
+      }
+    });
+    if (resolve && reject && !did_call_ready) {
+      did_call_ready = true;
+      onready({promise,resolve,reject});
+    }
+  });
+}
+
+export const buildTokensBCMRFromTokensIdentity = (tokens_identity: TokensIdentity): Registry => {
+  const identities: { [authbase: string]: IdentityHistory } = {};
+  for (const [ token_id, entry ] of Object.entries(tokens_identity)) {
+    identities[entry.authbase] = entry.history;
+  }
+  return {
+    "$schema": "https://cashtokens.org/bcmr-v2.schema.json",
+    "version": { "major": 1, "minor": 1, "patch": 2 },
+    "latestRevision": "2024-05-29T00:00:00.000Z",
+    "registryIdentity": {
+      "name": "vega token registry",
+      "description": "Tokens BCMR.",
+    },
+    identities,
+  };
+};
+

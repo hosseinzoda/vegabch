@@ -1,0 +1,6 @@
+{
+  "type": "client",
+  "rpc_endpoint": "http://127.0.0.1:1234",
+  "rpc_username": "",
+  "rpc_password": ""
+}

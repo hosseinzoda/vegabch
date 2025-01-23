@@ -1,7 +1,7 @@
 {
   "name": "vegabch",
   "description": "BCH defi trading tool",
-  "version": "0.0.16",
+  "version": "0.1.0-beta.1",
   "engines": {
     "node": ">=18.0.0"
   },
@@ -42,12 +42,11 @@
     "vegabch": "./bin/run.js"
   },
   "dependencies": {
+    "@electrum-cash/network": "^4.1.1",
     "@oclif/core": "^3",
     "@oclif/plugin-help": "^6",
     "@oclif/plugin-plugins": "^5",
-    "cashlab": "github:hosseinzoda/cashlab#beta",
-    "jayson": "^4.1.1",
-    "mainnet-js": "^2.3.13"
+    "cashlab": "^0.1.1-beta.1"
   },
   "devDependencies": {
     "@oclif/prettier-config": "^0.2.1",
@@ -61,8 +60,5 @@
     "shx": "^0.3.3",
     "ts-node": "^10",
     "typescript": "^5"
-  },
-  "volta": {
-    "node": "20.18.0"
   }
 }

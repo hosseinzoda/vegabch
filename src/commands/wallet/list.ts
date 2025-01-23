@@ -1,11 +1,9 @@
-import VegaCommand, { VegaCommandOptions, selectWalletFlags } from '../../lib/vega-command.js';
-import type { Wallet } from "mainnet-js";
+import VegaCommand, { VegaCommandOptions } from '../../lib/vega-command.js';
 
 export default class WalletList extends VegaCommand<typeof WalletList> {
   static args = {
   };
   static flags = {
-    ...selectWalletFlags(),
   };
   static vega_options: VegaCommandOptions = {
   };
@@ -17,15 +15,15 @@ export default class WalletList extends VegaCommand<typeof WalletList> {
   ];
 
   async run (): Promise<any> {
-    const pinned_wallet = await this.getPinnedWalletName();
-    const wallets_info = await this.getWalletsInfo();
-    if (wallets_info.length == 0) {
+    const items = await this.callModuleMethod('wallet.list');
+    const pinned_wallet_name = await this.callModuleMethod('wallet.pinned_wallet');
+    if (items.length == 0) {
       this.log('The wallets file is empty!');
     } else {
-      for (const winfo of wallets_info) {
-        this.log('- ' + winfo.network + ' ' + winfo.type + ': ' + winfo.name + (pinned_wallet == winfo.name ? ' (pinned)' : ''));
+      for (const item of items) {
+        this.log('- ' + item.network + ' ' + item.type + ': ' + item.name + (pinned_wallet_name == item.name ? ' (pinned)' : ''));
       }
     }
-    return { wallets_info };
+    return { items };
   }
 }

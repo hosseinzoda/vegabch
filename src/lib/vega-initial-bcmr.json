@@ -102,6 +102,38 @@
 			    "web":"https://bitcoincashtv.com/token"
 		    }
 	    }
+    },
+    "b79bfc8246b5fc4707e7c7dedcb6619ef1ab91f494a790c20b0f4c422ed95b92": {
+      "2023-06-21T06:51:35.409Z": {
+        "name": "Cauldron Socks",
+        "description": "Cauldron socks",
+        "token": {
+          "category": "b79bfc8246b5fc4707e7c7dedcb6619ef1ab91f494a790c20b0f4c422ed95b92",
+          "symbol": "SOCK",
+          "decimals": 0
+        },
+        "uris": {
+          "icon": "https://sock.cauldron.quest/sock.png",
+          "web": "https://cauldron.quest"
+        }
+      }
+    },
+    "4046913cba6b70b2214a048a3df92252849f481ffa1455ed7faf17243c36bf67": {
+      "2024-11-21T06:51:35.409Z": {
+        "name": "Moria USD",
+        "description": "Moria Protocol USD v1. This is an experimental run of the Moria Protocol.",
+        "token": {
+          "category": "4046913cba6b70b2214a048a3df92252849f481ffa1455ed7faf17243c36bf67",
+          "symbol": "MUSD",
+          "decimals": 2
+        },
+        "uris": {
+          "icon": "https://meta.moria.money/b1.png",
+          "web": "https://moria.money",
+          "x": "https://x.com/MoriaMoney/",
+          "telegram": "https://t.me/moriamoney"
+        }
+      }
     }
   },
   "license": "CC0-1.0"
