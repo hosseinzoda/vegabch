@@ -56,6 +56,18 @@ USAGE
 * [`vegabch moria0:repay-loan LOAN_OUTPOINT`](#vegabch-moria0repay-loan-loan_outpoint)
 * [`vegabch moria0:sunset-redeem LOAN_OUTPOINT SUNSET_DATASIG`](#vegabch-moria0sunset-redeem-loan_outpoint-sunset_datasig)
 
+* [`vegabch moria0-manager:enable WALLET_NAME`](#vegabch-moria0-managerenable-wallet_name)
+* [`vegabch moria0-manager:disable WALLET_NAME`](#vegabch-moria0-managerdisable-wallet_name)
+* [`vegabch moria0-manager:setup WALLET_NAME`](#vegabch-moria0-managersetup-wallet_name)
+* [`vegabch moria0-manager:print-settings WALLET_NAME`](#vegabch-moria0-managerprint-settings-wallet_name)
+* [`vegabch moria0-manager:status WALLET_NAME`](#vegabch-moria0-managerstatus-wallet_name)
+* [`vegabch moria0-manager:print-notification-hook HOOK_NAME`](#vegabch-moria0-managerprint-notification-hook-hook_name)
+* [`vegabch moria0-manager:delete-notification-hook HOOK_NAME`](#vegabch-moria0-managerdelete-notification-hook-hook_name)
+* [`vegabch moria0-manager:set-email-notification-hook HOOK_NAME`](#vegabch-moria0-managerset-email-notification-hook-hook_name)
+* [`vegabch moria0-manager:set-web-notification-hook HOOK_NAME`](#vegabch-moria0-managerset-web-notification-hook-hook_name)
+* [`vegabch moria0-manager:trigger-test-notification WALLET_NAME NOTIFICATION_NAME`](#vegabch-moria0-managertrigger-test-notification-wallet_name-notification_name)
+
+
 
 * [`vegabch network:broadcast-transaction TRANSACTION NETWORK`](#vegabch-networkbroadcast-transaction-transaction-network)
 
@@ -699,6 +711,305 @@ FLAG DESCRIPTIONS
 ```
 
 _See code: [src/commands/moria0/sunset-redeem.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.0-beta.1/src/commands/moria0/sunset-redeem.ts)_
+
+
+
+
+
+
+## `vegabch moria0-manager:enable WALLET_NAME`
+
+```
+USAGE
+  $ vegabch moria0-manager:enable WALLET_NAME --config <value> [--json]
+
+ARGUMENTS
+  WALLET_NAME  Enable moria0 manager for the wallet_name
+
+FLAGS
+  --config=<value>  (required) A path to the config file. Depending on the command the config can be for
+                    a client, daemon or standalone setup.
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+EXAMPLES
+  $ vegabch moria0-manager:enable <wallet_name>
+```
+
+_See code: [src/commands/moria0-manager/enable.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.1-beta.1/src/commands/moria0-manager/enable.ts)_
+
+## `vegabch moria0-manager:disable WALLET_NAME`
+
+```
+USAGE
+  $ vegabch moria0-manager:disable WALLET_NAME --config <value> [--json]
+
+ARGUMENTS
+  WALLET_NAME  Enable moria0 manager for the wallet_name
+
+FLAGS
+  --config=<value>  (required) A path to the config file. Depending on the command the config can be for
+                    a client, daemon or standalone setup.
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+EXAMPLES
+  $ vegabch moria0-manager:disable <wallet_name>
+```
+
+_See code: [src/commands/moria0-manager/disable.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.1-beta.1/src/commands/moria0-manager/disable.ts)_
+
+## `vegabch moria0-manager:setup WALLET_NAME`
+
+```
+USAGE
+  $ vegabch moria0-manager:setup WALLET_NAME --config <value> --target-loan-amount <value>
+    --target-collateral-rate <value> --above-target-collateral-refi-threshold <value>
+    --below-target-collateral-refi-threshold <value> --margin-call-warning-collateral-rate <value>
+    --max-loan-amount-per-utxo <value> --retarget_min_musd_amount <value> --txfee-per-byte <value>
+    --tx-reserve-for-change-and-txfee <value> --dryrun --debug --warning-notification-frequency <value>
+    --error-notification-frequency <value> [--json] [--notification-hook <value>...]
+
+ARGUMENTS
+  WALLET_NAME  wallet name of the loan manager instance.
+
+FLAGS
+  --above-target-collateral-refi-threshold=<value>  (required)
+                                                    settings.above_target_collateral_refi_threshold
+                                                    (type: fraction or null).
+  --below-target-collateral-refi-threshold=<value>  (required)
+                                                    settings.below_target_collateral_refi_threshold
+                                                    (type: fraction or null).
+  --config=<value>                                  (required) A path to the config file. Depending on
+                                                    the command the config can be for a client, daemon
+                                                    or standalone setup.
+  --debug                                           (required) settings.debug (type: boolean).
+  --dryrun                                          (required) settings.dryrun (type: boolean).
+  --error-notification-frequency=<value>            (required) [default: 1]
+                                                    settings.error_notification_frequency (type:
+                                                    number).
+  --margin-call-warning-collateral-rate=<value>     (required)
+                                                    settings.below_target_collateral_refi_threshold
+                                                    (type: fraction).
+  --max-loan-amount-per-utxo=<value>                (required) [default: 1000.00]
+                                                    settings.max_loan_amount_per_utxo, (type: decimal)
+                                                    in MUSD.
+  --notification-hook=<value>...                    names of the notification_hooks to assign to this
+                                                    entry.
+  --retarget_min_musd_amount=<value>                (required) [default: 1.00]
+                                                    settings.retarget_min_musd_amount, (type: decimal)
+                                                    in MUSD.
+  --target-collateral-rate=<value>                  (required) settings.target_collateral_rate (type:
+                                                    fraction).
+  --target-loan-amount=<value>                      (required) settings.target_loan_amount, (type:
+                                                    decimal) in MUSD.
+  --tx-reserve-for-change-and-txfee=<value>         (required) [default: 10000]
+                                                    settings.tx_reserve_for_change_and_txfee (type:
+                                                    integer), A reserve change for every generated tx by
+                                                    the loan manager.
+  --txfee-per-byte=<value>                          (required) [default: 1] settings.txfee_per_byte
+                                                    (type: integer), Specify the txfee per byte in sats.
+  --warning-notification-frequency=<value>          (required) [default: 1]
+                                                    settings.warning_notification_frequency (type:
+                                                    number).
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+EXAMPLES
+  $ vegabch moria0-manager:setup <wallet_name> ....
+```
+
+_See code: [src/commands/moria0-manager/setup.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.1-beta.1/src/commands/moria0-manager/setup.ts)_
+
+## `vegabch moria0-manager:print-settings WALLET_NAME`
+
+```
+USAGE
+  $ vegabch moria0-manager:print-settings WALLET_NAME --config <value> [--json]
+
+ARGUMENTS
+  WALLET_NAME  wallet name of the loan manager instance.
+
+FLAGS
+  --config=<value>  (required) A path to the config file. Depending on the command the config can be for
+                    a client, daemon or standalone setup.
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+EXAMPLES
+  $ vegabch moria0-manager:print-settings <wallet_name>
+```
+
+_See code: [src/commands/moria0-manager/print-settings.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.1-beta.1/src/commands/moria0-manager/print-settings.ts)_
+
+## `vegabch moria0-manager:status WALLET_NAME`
+
+```
+USAGE
+  $ vegabch moria0-manager:status WALLET_NAME --config <value> [--json]
+
+ARGUMENTS
+  WALLET_NAME  wallet name of the loan manager instance.
+
+FLAGS
+  --config=<value>  (required) A path to the config file. Depending on the command the config can be for
+                    a client, daemon or standalone setup.
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+EXAMPLES
+  $ vegabch moria0-manager:status <wallet_name>
+```
+
+_See code: [src/commands/moria0-manager/status.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.1-beta.1/src/commands/moria0-manager/status.ts)_
+
+
+## `vegabch moria0-manager:print-notification-hook HOOK_NAME`
+
+```
+USAGE
+  $ vegabch moria0-manager:print-notification-hook HOOK_NAME --config <value> [--json]
+
+ARGUMENTS
+  HOOK_NAME  wallet name of the loan manager instance.
+
+FLAGS
+  --config=<value>  (required) A path to the config file. Depending on the command the config can be for
+                    a client, daemon or standalone setup.
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+EXAMPLES
+  $ vegabch moria0-manager:print-notification-hook <hook_name> ....
+```
+
+_See code: [src/commands/moria0-manager/print-notification-hook.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.1-beta.1/src/commands/moria0-manager/print-notification-hook.ts)_
+
+## `vegabch moria0-manager:delete-notification-hook HOOK_NAME`
+
+```
+USAGE
+  $ vegabch moria0-manager:delete-notification-hook HOOK_NAME --config <value> [--json]
+
+ARGUMENTS
+  HOOK_NAME  wallet name of the loan manager instance.
+
+FLAGS
+  --config=<value>  (required) A path to the config file. Depending on the command the config can be for
+                    a client, daemon or standalone setup.
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+EXAMPLES
+  $ vegabch moria0-manager:delete-notification-hook <hook_name> ....
+```
+
+_See code: [src/commands/moria0-manager/delete-notification-hook.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.1-beta.1/src/commands/moria0-manager/delete-notification-hook.ts)_
+
+## `vegabch moria0-manager:set-email-notification-hook HOOK_NAME`
+
+```
+USAGE
+  $ vegabch moria0-manager:set-email-notification-hook HOOK_NAME --config <value> --protocol SMTP --host <value> --port <value>
+    --username <value> --password <value> --sender <value> --recipient <value> [--json] [--target-events
+    <value>...] [--secure-layer STARTTLS|TLS]
+
+ARGUMENTS
+  HOOK_NAME  wallet name of the loan manager instance.
+
+FLAGS
+  --config=<value>            (required) A path to the config file. Depending on the command the config
+                              can be for a client, daemon or standalone setup.
+  --host=<value>              (required) email server host.
+  --password=<value>          (required) email's authorization password.
+  --port=<value>              (required) email server port.
+  --protocol=<option>         (required) [default: SMTP] notification hook's email protocol
+                              <options: SMTP>
+  --recipient=<value>         (required) notification recipient email.
+  --secure-layer=<option>     protocol's secure layer.
+                              <options: STARTTLS|TLS>
+  --sender=<value>            (required) notification from email.
+  --target-events=<value>...  trigger the notification for the target-events, If not defined it'll be
+                              triggered for all events.
+  --username=<value>          (required) email's authorization username.
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+EXAMPLES
+  $ vegabch moria0-manager:set-email-notification-hook <hook_name> ....
+```
+
+_See code: [src/commands/moria0-manager/set-email-notification-hook.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.1-beta.1/src/commands/moria0-manager/set-email-notification-hook.ts)_
+
+## `vegabch moria0-manager:set-web-notification-hook HOOK_NAME`
+
+```
+USAGE
+  $ vegabch moria0-manager:set-web-notification-hook HOOK_NAME --config <value> --link <value> --method POST|PUT
+    --post-content-type json|form-urlencoded [--json] [--target-events <value>...] [--header <value>...]
+
+ARGUMENTS
+  HOOK_NAME  wallet name of the loan manager instance.
+
+FLAGS
+  --config=<value>              (required) A path to the config file. Depending on the command the
+                                config can be for a client, daemon or standalone setup.
+  --header=<value>...           Value format, "Name:Value"
+  --link=<value>                (required) notification hook's http or https link
+  --method=<option>             (required) [default: POST] web request's method.
+                                <options: POST|PUT>
+  --post-content-type=<option>  (required) [default: json] post's content type.
+                                <options: json|form-urlencoded>
+  --target-events=<value>...    trigger the notification for the target-events, If not defined it'll be
+                                triggered for all events.
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+EXAMPLES
+  $ vegabch moria0-manager:set-web-notification-hook <hook_name> ....
+```
+
+_See code: [src/commands/moria0-manager/set-web-notification-hook.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.1-beta.1/src/commands/moria0-manager/set-web-notification-hook.ts)_
+
+
+## `vegabch moria0-manager:trigger-test-notification WALLET_NAME NOTIFICATION_NAME`
+
+```
+USAGE
+  $ vegabch moria0-manager:trigger-test-notification WALLET_NAME NOTIFICATION_NAME --config <value>
+  [--json]
+
+ARGUMENTS
+  WALLET_NAME        wallet name of the loan manager instance.
+  NOTIFICATION_NAME  The name of the test notification to trigger.
+
+FLAGS
+  --config=<value>  (required) A path to the config file. Depending on the command the config can be for
+                    a client, daemon or standalone setup.
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+EXAMPLES
+  $ vegabch moria0-manager:trigger-test-notification <wallet_name> <notification_name>
+```
+
+_See code: [src/commands/moria0-manager/trigger-test-notification.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.1-beta.1/src/commands/moria0-manager/trigger-test-notification.ts)_
+
+
+
+
+
+
 
 ## `vegabch network:broadcast-transaction TRANSACTION NETWORK`
 

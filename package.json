@@ -1,7 +1,7 @@
 {
   "name": "vegabch",
   "description": "BCH defi trading tool",
-  "version": "0.1.1-beta.1",
+  "version": "0.1.2-beta.1",
   "engines": {
     "node": ">=18.0.0"
   },
