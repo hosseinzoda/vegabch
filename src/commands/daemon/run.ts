@@ -124,7 +124,7 @@ export default class DaemonRun extends VegaCommand<typeof DaemonRun> {
             }
             let method = mainModule.getMethod(message[0]);
             if (method == null) {
-              respond(new ValueError(`Method not found, name: ${message[0]}`));
+              respond(new ValueError(`Method not found, name: ${message[0]}`), 404);
               return;
             }
             ;(async () => {

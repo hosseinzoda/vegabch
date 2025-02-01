@@ -1,7 +1,7 @@
 import { ElectrumClient, ElectrumClientEvents, RPCNotification as ElectrumRPCNotification } from '@electrum-cash/network';
 import { ElectrumWebSocket } from '@electrum-cash/web-socket';
 import EventEmitter from 'node:events';
-import type { Service, ModuleDependency, Console } from './types.js';
+import type { Service, ServiceDependency, Console } from './types.js';
 
 export default class ElectrumClientManager extends EventEmitter implements Service {
   _name: string;
@@ -29,7 +29,7 @@ export default class ElectrumClientManager extends EventEmitter implements Servi
   getClient (): ElectrumClient<ElectrumClientEvents> | null {
     return this._client;
   }
-  getDependencies (): ModuleDependency[] {
+  static getDependencies (): ServiceDependency[] {
     return [
       { name: 'console' },
     ];
@@ -113,6 +113,7 @@ export default class ElectrumClientManager extends EventEmitter implements Servi
       this._client.removeListener('notification', (this as any)._onClientNotification);
 			this._client.removeListener('disconnected', (this as any)._onDisconnected);
       await this._client.disconnect(true, false);
+      this._client = null;
     }
   }
 }

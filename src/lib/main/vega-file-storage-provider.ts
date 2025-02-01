@@ -186,8 +186,12 @@ export default class VegaFileStorageProvider implements Service {
     try {
       await access(this._filename, fs_constants.R_OK | fs_constants.W_OK);
     } catch (err) {
-      // initialize
-      return VegaFileStorageProvider.initialData();
+      if ((err as any).code == 'ENOENT') {
+        // initialize
+        return VegaFileStorageProvider.initialData();
+      } else {
+        throw err;
+      }
     }
     return JSON.parse((await readFile(this._filename)).toString('utf8'));
   }

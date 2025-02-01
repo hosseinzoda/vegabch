@@ -1,25 +1,29 @@
+export type ServiceDependency = {
+  name: string;
+};
+export type ModuleDependency = {
+  name: string;
+  argument_name?: string;
+};
 
 export type Service = {
   init? (dependent_services: any): Promise<void>;
   destroy? (): Promise<void>;
-  getDependencies? (): ModuleDependency[];
+  getDependencies? (): ServiceDependency[];
 };
 
 export type ServiceConstructor = {
-  getDependencies? (): ModuleDependency[];
+  getDependencies? (): ServiceDependency[];
   create (): Service;
 };
 
-export type ModuleDependency = {
-  name: string;
-};
-
 export type Module = {
-  init (services: any): Promise<void>;
+  init (inputs: any): Promise<void>;
   destroy (): Promise<void>;
   getDependencies (): ModuleDependency[];
   getSchema (): ModuleSchema;
   getMethod (name: string): ModuleMethod | undefined;
+  getServices? (): Array<{ name: string, service_constructor: ServiceConstructor }>;
 };
 
 export type MainModule = {

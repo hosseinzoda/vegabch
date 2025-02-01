@@ -4,10 +4,11 @@ import { libauth, common as cashlab_common, UTXO } from 'cashlab';
 const { uint8ArrayEqual } = cashlab_common;
 const { assertSuccess, lockingBytecodeToCashAddress } = libauth;
 import { EventEmitter } from 'node:events';
-import type { Service, Console, ModuleDependency } from './types.js';
+import type { Service, Console, ServiceDependency } from './types.js';
 import { deferredPromise, parseElectrumUTXO } from '../util.js';
 
 type TimeoutId = ReturnType<typeof setTimeout>;
+export type UTXOTrackerRefId = string;
 
 export type UTXOTrackerLockingBytecodeEntry = {
   type: 'locking_bytecode';
@@ -18,9 +19,6 @@ export type UTXOTrackerLockingBytecodeEntry = {
   error: any;
   initialized: boolean;
   active_sub: boolean;
-  nouse_auto_remove: boolean;
-  nouse_timeout_duration?: number;
-  nouse_timeout_id?: TimeoutId;
 };
 
 export type UTXOTrackerEntry = |
@@ -28,14 +26,30 @@ export type UTXOTrackerEntry = |
 
 export default class UTXOTracker extends EventEmitter implements Service {
   _client_manager: ElectrumClientManager | undefined;
-  _entries: UTXOTrackerEntry[];
+  _cashaddr_finalization_registry: FinalizationRegistry<any>;
+  _cashaddr_entries_ref: Map<string, WeakRef<UTXOTrackerEntry>>;
+  _cached_entries: Array<{ nouse_timeout_id: TimeoutId | null, value: UTXOTrackerEntry }>;
+  _subscribed_cashaddrs: Set<string>;
   _console: Console;
   constructor () {
     super();
     this._console = null as any;
-    this._entries = [];
+    this._cashaddr_entries_ref = new Map();
+    this._cached_entries = [];
+    this._subscribed_cashaddrs = new Set();
+    this._cashaddr_finalization_registry = new FinalizationRegistry((cashaddr: string) => {
+      if (this._client_manager != null) {
+        const client = this._client_manager.getClient();
+        if (client != null) {
+          if (this._subscribed_cashaddrs.has(cashaddr)) {
+            this._subscribed_cashaddrs.delete(cashaddr);
+            client.unsubscribe('blockchain.address.subscribe', cashaddr);
+          }
+        }
+      }
+    });
   }
-  getDependencies (): ModuleDependency[] {
+  static getDependencies (): ServiceDependency[] {
     return [
       { name: 'electrum_client_manager' },
       { name: 'console' },
@@ -56,8 +70,25 @@ export default class UTXOTracker extends EventEmitter implements Service {
       this._client_manager.removeListener('connected', (this as any)._onConnected);
       this._client_manager.removeListener('disconnected', (this as any)._onDisconnected);
       this._client_manager.removeListener('notification', (this as any)._onElectrumNotification);
+      const client = this._client_manager.getClient();
+      if (client != null) {
+        await Promise.all(Array.from(this._subscribed_cashaddrs).map((a) => client.unsubscribe('blockchain.address.subscribe', a)));
+      }
     }
-    await Promise.all(this._entries.map((entry) => this.removeEntry(entry)));
+    for (const { nouse_timeout_id } of this._cached_entries) {
+      if (nouse_timeout_id != null) {
+        clearTimeout(nouse_timeout_id);
+      }
+    }
+    for (const [ cashaddr, ref ] of this._cashaddr_entries_ref.entries()) {
+      const entry = ref.deref()
+      if (entry != null) {
+        this._cashaddr_finalization_registry.unregister(entry);
+      }
+    }
+    this._cashaddr_entries_ref = new Map();
+    this._subscribed_cashaddrs = new Set();
+    this._cached_entries = [];
   }
   onConnected (): void {
     if (this._client_manager == null) {
@@ -67,19 +98,29 @@ export default class UTXOTracker extends EventEmitter implements Service {
     if (client == null) {
       throw new Error('onConnected, client should not be null!');
     }
-    for (const entry of this._entries) {
-      this.initEntry(client, entry);
+    for (const [ cashaddr, ref ] of this._cashaddr_entries_ref.entries()) {
+      const entry = ref.deref();
+      if (entry != null) {
+        this.initEntry(client, entry);
+      } else {
+        this._cashaddr_entries_ref.delete(cashaddr);
+      }
     }
   }
   onDisconnected (): void {
     if (this._client_manager == null) {
       throw new Error('client manager is not defined!');
     }
-    for (const entry of this._entries) {
-      entry.initialized = false;
-      entry.active_sub = false;
-      entry.pending_request = null;
-      entry.data = null
+    for (const [ cashaddr, ref ] of this._cashaddr_entries_ref.entries()) {
+      const entry = ref.deref();
+      if (entry != null) {
+        entry.initialized = false;
+        entry.active_sub = false;
+        entry.pending_request = null;
+        entry.data = null
+      } else {
+        this._cashaddr_entries_ref.delete(cashaddr);
+      }
     }
   }
   onElectrumNotification (message: ElectrumRPCNotification): void {
@@ -92,13 +133,16 @@ export default class UTXOTracker extends EventEmitter implements Service {
     }
     switch (message.method) {
       case 'blockchain.address.subscribe': {
-        if (message.params == null) {
+        if (message.params == null || typeof message.params[0] != 'string') {
           return;
         }
-        const cashaddr = message.params[0];
-        const entry = this._entries.find((a) => a.type == 'locking_bytecode' && a.cashaddr && a.cashaddr == cashaddr);
-        if (entry != null && entry.initialized) {
-          this.reloadEntryData(client, entry);
+        const cashaddr: string = message.params[0];
+        const entry_ref = this._cashaddr_entries_ref.get(cashaddr);
+        if (entry_ref != null) {
+          const entry = entry_ref.deref();
+          if (entry != null && entry.initialized) {
+            this.reloadEntryData(client, entry);
+          }
         }
         break;
       }
@@ -182,47 +226,9 @@ export default class UTXOTracker extends EventEmitter implements Service {
     })();
     return await pending_promise;
   }
-  async removeEntry (entry: UTXOTrackerEntry): Promise<void> {
-    if (this._client_manager == null) {
-      throw new Error('client manager is not defined!');
-    }
-    const idx = this._entries.indexOf(entry);
-    if (idx == -1) {
-      throw new Error('The entry is not registered');
-    }
-    this._entries.splice(idx, 1);
-    if (entry.type != 'locking_bytecode') {
-      throw new Error('Unknown entry type=locking_bytecode');
-    }
-    let pending_promise;
-    if (this._client_manager != null) {
-      const client = this._client_manager.getClient();
-      if (client != null) {
-        try {
-          await entry.pending_request;
-        } catch (err) {
-          // pass
-        }
-        const pending_promise = entry.pending_request = (async () => {
-          try {
-            await client.unsubscribe('blockchain.address.subscribe', entry.cashaddr);
-          } catch (err) {
-            this._console.warn('unsubscribe blockchain.address failed, ', err);
-          } finally {
-            entry.pending_request = null;
-          }
-        })();
-        await pending_promise;
-      }
-    }
-  }
   async addTrackerByLockingBytecode (locking_bytecode: Uint8Array): Promise<UTXOTrackerEntry> {
     if (this._client_manager == null) {
       throw new Error('client manager is not defined!');
-    }
-    let entry = this.getTrackerEntryByLockingBytecode(locking_bytecode);
-    if (entry != null) {
-      return entry;
     }
     // TODO:: set network_prefix based on the network
     // network == 'mainnet'
@@ -232,6 +238,10 @@ export default class UTXOTracker extends EventEmitter implements Service {
       prefix: network_prefix,
       tokenSupport: false,
     })).address;
+    let entry = this.getTrackerEntryByCashAddr(cashaddr);
+    if (entry != null) {
+      return entry;
+    }
     entry = {
       type: 'locking_bytecode',
       locking_bytecode,
@@ -241,26 +251,25 @@ export default class UTXOTracker extends EventEmitter implements Service {
       error: null,
       initialized: false,
       active_sub: false,
-      nouse_auto_remove: false,
     };
-    this._entries.push(entry);
+    this._cashaddr_entries_ref.set(cashaddr, new WeakRef(entry));
+    this._cashaddr_finalization_registry.register(entry, cashaddr);
     const client = this._client_manager.getClient();
     if (client != null) {
       await this.initEntry(client, entry);
     }
     return entry;
   }
-  getTrackerEntryByLockingBytecode (locking_bytecode: Uint8Array): UTXOTrackerEntry | undefined {
-    return this._entries.find((a) => a.type == 'locking_bytecode' && uint8ArrayEqual(a.locking_bytecode, locking_bytecode));
-  }
-  getTrackerEntries (): UTXOTrackerEntry[] {
-    return this._entries;
+  getTrackerEntryByCashAddr (cashaddr: string): UTXOTrackerEntry | undefined {
+    const ref = this._cashaddr_entries_ref.get(cashaddr);
+    return ref != null ? ref.deref() : undefined;
   }
   async getEntryUTXOList (entry: UTXOTrackerEntry): Promise<UTXO[]> {
     if (this._client_manager == null) {
       throw new Error('client manager is not defined!');
     }
-    if (this._entries.indexOf(entry) == -1) {
+    const matched_ref_value = this._cashaddr_entries_ref.get(entry.cashaddr)
+    if (!matched_ref_value || matched_ref_value.deref() != entry) {
       throw new Error('The entry is not registered');
     }
     if (entry.pending_request != null) {
@@ -291,22 +300,28 @@ export default class UTXOTracker extends EventEmitter implements Service {
     }
   }
   onEntryUsed (entry: UTXOTrackerEntry): void {
-    if (entry.nouse_auto_remove) {
-      if (entry.nouse_timeout_id != null) {
-        clearTimeout(entry.nouse_timeout_id);
+    const cached_entry = this._cached_entries.find((a) => a.value == entry);
+    if (cached_entry != null) {
+      if (cached_entry.nouse_timeout_id != null) {
+        clearTimeout(cached_entry.nouse_timeout_id);
       }
-      entry.nouse_timeout_duration = 10 * 60 * 1000;
-      entry.nouse_timeout_id = setTimeout(() => {
-        this.removeEntry(entry);
-      }, entry.nouse_timeout_duration);
+      const NOUSE_TIMEOUT_DURATION = 10 * 60 * 1000
+      cached_entry.nouse_timeout_id = setTimeout(() => {
+        const cached_entry_idx = this._cached_entries.findIndex((a) => a.value == entry);
+        if (cached_entry_idx != -1) {
+          this._cached_entries.splice(cached_entry_idx, 1);
+        }
+      }, NOUSE_TIMEOUT_DURATION);
     }
   }
   async getUTXOListForLockingBytecode (locking_bytecode: Uint8Array): Promise<UTXO[]> {
-    let entry = this.getTrackerEntryByLockingBytecode(locking_bytecode);
-    if (entry == null) {
-      entry = await this.addTrackerByLockingBytecode(locking_bytecode);
-      entry.nouse_auto_remove = true;
+    const entry = await this.addTrackerByLockingBytecode(locking_bytecode);
+    const idx = this._cached_entries.findIndex((a) => a.value == entry);
+    if (idx == -1) {
+      this._cached_entries.push({ nouse_timeout_id: null, value: entry });
     }
     return await this.getEntryUTXOList(entry);
   }
 }
+
+

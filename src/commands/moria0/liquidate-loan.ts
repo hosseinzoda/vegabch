@@ -20,7 +20,7 @@ export default class Moria0LiquidateLoan extends VegaCommand<typeof Moria0Liquid
   static flags = {
     ...selectWalletFlags(),
     'txfee-per-byte': Flags.string({
-      description: 'Specify the txfee per byte in sats, By default the suggested tx fee will be used.',
+      description: 'Specify the txfee per byte in sats.',
       required: true,
       default: '1',
     }),

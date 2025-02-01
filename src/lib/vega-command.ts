@@ -1,11 +1,12 @@
 import { Command, Flags, Interfaces, Config } from '@oclif/core';
-import { TimeoutAndIntevalController, binToHex } from './util.js';
+import { TimeoutAndIntevalController, binToHex, convertToJSONSerializable } from './util.js';
 import ElectrumClientManager from './main/electrum-client-manager.js';
 import http from 'node:http';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { serializeMessage, deserializeMessage } from './json-ipc-serializer.js';
 import type mainModuleType from './main/index.js';
+import type { ServiceDependency, Service } from './main/types.js';
 
 let _mainModule: typeof mainModuleType | null = null;
 
@@ -201,7 +202,7 @@ export default abstract class VegaCommand<T extends typeof Command> extends Comm
         const VegaFileStorageProvider = (await import('./main/vega-file-storage-provider.js')).default;
         const mainModule = await import('./main/index.js');
 
-        { // init mainModule
+        try { // init mainModule
           let main_node_info = null;
           {
             const url = new URL(this._config.main_electrum_node);
@@ -228,16 +229,25 @@ export default abstract class VegaCommand<T extends typeof Command> extends Comm
           }
           // services
           mainModule.registerService('electrum_client_manager', {
+            getDependencies (): ServiceDependency[] {
+              return ElectrumClientManager.getDependencies();
+            },
             create: () => {
               return new ElectrumClientManager('main', main_node_info.host, main_node_info.port, main_node_info.encrypted);
             },
           });
           mainModule.registerService('cauldron_client_manager', {
+            getDependencies (): ServiceDependency[] {
+              return ElectrumClientManager.getDependencies();
+            },
             create: () => {
               return new ElectrumClientManager('cauldron-indexer', cauldron_indexer_node_info.host, cauldron_indexer_node_info.port, cauldron_indexer_node_info.encrypted);
             },
           });
           mainModule.registerService('utxo_tracker', {
+            getDependencies (): ServiceDependency[] {
+              return UTXOTracker.getDependencies();
+            },
             create: () => {
               return new UTXOTracker();
             },
@@ -264,8 +274,19 @@ export default abstract class VegaCommand<T extends typeof Command> extends Comm
               return console_service;
             },
           });
+          mainModule.registerService('config', {
+            create: () => {
+              return {
+                path: this._config_path,
+                data: this._config,
+              } as Service;
+            },
+          });
           await mainModule.init();
           _mainModule = mainModule;
+        } catch (err) {
+          console.error(err);
+          throw err;
         }
       }
 
@@ -299,30 +320,7 @@ export default abstract class VegaCommand<T extends typeof Command> extends Comm
   }
 
   protected logJson (json: unknown): void {
-    const prepareJson = (v: any): any => {
-      if (typeof v == 'bigint') {
-        return v+'';
-      }
-      if (v instanceof Error) {
-        v = {
-          message: v.message, name: v.name,
-          ...Object.fromEntries(['code'].filter((a) => v[a] != null).map((a) => [ a, v[a] ])),
-        };
-      } else if (Array.isArray(v)) {
-        v = Array.from(v).map(prepareJson);
-      } else if (v && typeof v == 'object') {
-        if (v instanceof Uint8Array) {
-          v = binToHex(v);
-        } else {
-          v = Object.fromEntries(
-            Object.entries(v)
-              .map((a) => [ a[0], prepareJson(a[1]) ])
-          )
-        }
-      }
-      return v;
-    }
-    return super.logJson(prepareJson(json));
+    return super.logJson(convertToJSONSerializable(json));
   }
 
   async callModuleMethod (name: string, ...args: any[]): Promise<any> {

@@ -3,20 +3,34 @@ import * as vega_storage from './vega_storage/index.js';
 import * as network from './network/index.js';
 import * as cauldron from './cauldron/index.js';
 import * as moria0 from './moria0/index.js';
-import type { ModuleSchema, ModuleDependency, ModuleMethod, Module, ServiceConstructor } from './types.js';
-import UTXOTracker from './utxo-tracker.js';
+import * as moria0_manager from './moria0_manager/index.js';
+import type {
+  ModuleSchema, ServiceDependency, ModuleDependency, ModuleMethod,
+  Module, ServiceConstructor, Service,
+} from './types.js';
 
 import { ValueError } from '../exceptions.js';
 
-const sub_module_entries: Array<{ name: string, module: Module }> = [
-  { name: 'wallet', module: wallet },
+type SubModuleEntry = {
+  name: string;
+  module: Module;
+  init_by_dependent?: boolean;
+  initialized: boolean;
+  pending_init?: Promise<void>;
+  pending_destroy?: Promise<void>;
+};
+
+const sub_module_entries: SubModuleEntry[] = [
+  { name: 'wallet', module: wallet  },
   { name: 'vega_storage', module: vega_storage },
   { name: 'network', module: network },
   { name: 'cauldron', module: cauldron },
   { name: 'moria0', module: moria0 },
-];
+  { name: 'moria0_manager', module: moria0_manager },
+].map((a) => ({ ...a, initialized: false }));
 
 let services_init_pending_map: { [name: string]: Promise<any> } = {};
+let services_destroy_pending_map: { [name: string]: Promise<any> } = {};
 let services_map: { [name: string]: any } = {};
 const service_constructor_list: Array<{ name: string, value: ServiceConstructor }> = [];
 
@@ -27,57 +41,278 @@ export function registerService (name: string, value: ServiceConstructor): void 
   service_constructor_list.push({ name, value });
 }
 
-export async function prepareModuleDependentServices (dependencies: ModuleDependency[], pending_resolution: string[]): Promise<{ [name: string]: any }> {
-  const dependencies_map = new Map();
-  for (const entry of dependencies) {
-    if (dependencies_map.has(entry.name)) {
-      throw new Error('Duplicate dependency, name: ' + entry.name);
+type DependencyTreeItem = {
+  type: 'service' | 'module';
+  name: string;
+  value: any;
+  dependencies_wrapper: Array<{
+    value: any;
+    node: DependencyTreeItem,
+  }>;
+  dependents: DependencyTreeItem[];
+};
+const dependency_tree_item_map: Map<string, DependencyTreeItem> = new Map();
+
+function getModuleDependencyTree (sub_module_entry: SubModuleEntry): DependencyTreeItem {
+  const validateDependencies = (parent_name: string, dependencies: any[], pending_resolution: string[]) => {
+    const dependencies_map = new Map();
+    for (const entry of dependencies) {
+      if (!entry.name) {
+        throw new Error('dependency name not defined!');
+      }
+      if (parent_name == entry.name) {
+        throw new Error('Module/Service cannot depend on itself, name: ' + entry.name);
+      }
+      if (pending_resolution.indexOf(entry.name) != -1) {
+        throw new Error('Circular dependency, name: '  + entry.name);
+      }
+      if (dependencies_map.has(entry.name)) {
+        throw new Error('Duplicate dependency, name: ' + entry.name);
+      }
+      dependencies_map.set(entry.name, entry);
     }
-    dependencies_map.set(entry.name, entry);
   }
-  return Object.fromEntries(
-    await Promise.all(dependencies.map(async (item) => {
-      if (!item.name) {
-        throw new Error('item name not defined!');
+  const buildServiceDependencyTree = (service_name: string, service_constructor: ServiceConstructor, pending_resolution: string[]): DependencyTreeItem => {
+    if (dependency_tree_item_map.has(service_name)) {
+      return dependency_tree_item_map.get(service_name) as DependencyTreeItem;
+    }
+    const dependencies = typeof service_constructor.getDependencies == 'function' ?
+      service_constructor.getDependencies() : [];
+    validateDependencies(service_name, dependencies, pending_resolution);
+    const dependencies_wrapper = [];
+    for (const dependency of dependencies) {
+      let dependency_name = dependency.name;
+      if (dependency.name.startsWith('.')) {
+        const parts = service_name.split('.');
+        if (parts.length == 0) {
+          throw new Error('Relative dependency is not applicable, name: ' + dependency.name);
+        }
+        dependency_name = parts.slice(0, parts.length - 1).join('.') + dependency.name;
       }
-      if (pending_resolution.indexOf(item.name) != -1) {
-        throw new Error('Circular dependency, name: '  + item.name);
+      const matched_service_constructor = service_constructor_list.find((a) => a.name == dependency_name);
+      if (matched_service_constructor != null) {
+        dependencies_wrapper.push({
+          value: dependency,
+          node: buildServiceDependencyTree(matched_service_constructor.name, matched_service_constructor.value, [ ...pending_resolution, dependency_name ]),
+        });
+        continue;
       }
-      let service = services_map[item.name];
-      if (service == null) {
-        if (services_init_pending_map[item.name]) {
-          service = await services_init_pending_map[item.name];
-        } else {
-          try {
-            service = await (services_init_pending_map[item.name] = (async () => {
-              const service_constructor_item = service_constructor_list.find((a) => a.name == item.name);
-              if (service_constructor_item == null) {
-                throw new Error('No service registered with the following name: ' + item.name);
-              }
-              const service = service_constructor_item.value.create();
-              const sub_pending_resolution: string[] = [].concat(pending_resolution as any);
-              sub_pending_resolution.push(item.name);
-              const sub_dependencies = (
-                typeof service_constructor_item.value.getDependencies == 'function' ?
-                  service_constructor_item.value.getDependencies() :
-                  (typeof service.getDependencies == 'function' ?
-                    service.getDependencies():  null)
-              ) || [];
-              const sub_params = sub_dependencies.length > 0 ?
-                await prepareModuleDependentServices(sub_dependencies, sub_pending_resolution) : {};
-              if (typeof service.init == 'function') {
-                await service.init(sub_params);
-              }
-              return services_map[item.name] = service;
-            })());
-          } finally {
-            delete services_init_pending_map[item.name];
-          }
+      throw new Error('Dependency not found, name: ' + dependency.name);
+    }
+    const item: DependencyTreeItem = {
+      type: 'service',
+      name: service_name,
+      value: service_constructor,
+      dependencies_wrapper,
+      dependents: [],
+    };
+    for (const dependency_wrapper of dependencies_wrapper) {
+      if (dependency_wrapper.node.dependents.indexOf(item) == -1) {
+        dependency_wrapper.node.dependents.push(item);
+      }
+    }
+    dependency_tree_item_map.set(service_name, item);
+    return item;
+  };
+  const buildModuleDependencyTree = (sub_module_entry: SubModuleEntry, pending_resolution: string[]): DependencyTreeItem => {
+    if (dependency_tree_item_map.has(sub_module_entry.name)) {
+      return dependency_tree_item_map.get(sub_module_entry.name) as DependencyTreeItem;
+    }
+    const dependencies = sub_module_entry.module.getDependencies();
+    validateDependencies(sub_module_entry.name, dependencies, pending_resolution);
+    const dependencies_wrapper = [];
+    for (const dependency of dependencies) {
+      const matched_module_entry = sub_module_entries.find((a) => a.name == dependency.name);
+      if (matched_module_entry != null) {
+        dependencies_wrapper.push({
+          value: dependency,
+          node: buildModuleDependencyTree(matched_module_entry, [ ...pending_resolution, dependency.name ])
+        });
+        continue;
+      } else {
+        let dependency_name = dependency.name;
+        if (dependency.name.startsWith('.')) {
+          dependency_name = sub_module_entry.name + dependency.name;
+        }
+        const matched_service_constructor_item = service_constructor_list.find((a) => a.name == dependency_name);
+        if (matched_service_constructor_item != null) {
+          dependencies_wrapper.push({
+            value: dependency,
+            node: buildServiceDependencyTree(dependency_name, matched_service_constructor_item.value, [ ...pending_resolution, dependency_name ])
+          });
+          continue;
         }
       }
-      return [ item.name, service ];
+      throw new Error('Dependency not found, name: ' + dependency.name + ', Dependent module name: ' + sub_module_entry.name);
+    }
+    const item: DependencyTreeItem = {
+      type: 'module',
+      name: sub_module_entry.name,
+      value: sub_module_entry,
+      dependencies_wrapper,
+      dependents: [],
+    };
+    for (const dependency_wrapper of dependencies_wrapper) {
+      if (dependency_wrapper.node.dependents.indexOf(item) == -1) {
+        dependency_wrapper.node.dependents.push(item);
+      }
+    }
+    dependency_tree_item_map.set(sub_module_entry.name, item);
+    return item;
+  };
+  return buildModuleDependencyTree(sub_module_entry, []);
+}
+
+async function prepareModuleRequiredDependencies (tree: DependencyTreeItem, pending_resolution: string[]): Promise<{ [name: string]: any }> {
+  return Object.fromEntries(
+    await Promise.all(tree.dependencies_wrapper.map(async (dependency_wrapper) => {
+      if (!dependency_wrapper.node.name) {
+        throw new Error('item name not defined!');
+      }
+      if (pending_resolution.indexOf(dependency_wrapper.node.name) != -1) {
+        throw new Error('Circular dependency, name: '  + dependency_wrapper.node.name);
+      };
+      let argument_name = dependency_wrapper.node.name.replace('.', '__');
+      if (dependency_wrapper.value.argument_name) {
+        argument_name = dependency_wrapper.value.argument_name
+      }
+      if (dependency_wrapper.node.type == 'module') {
+        return [ argument_name, await initSubModuleIfNeeded(dependency_wrapper.node, true, [ ...pending_resolution, dependency_wrapper.node.name ]) ];
+      } else if (dependency_wrapper.node.type == 'service') {
+        return [ argument_name, await initServiceIfNeeded(dependency_wrapper.node, [ ...pending_resolution, dependency_wrapper.node.name ]) ];
+      }
+      throw new Error('Unknown dependency type: ' + dependency_wrapper.node.type);
     }))
   );
+}
+
+async function initServiceIfNeeded (item: DependencyTreeItem, pending_resolution: string[]): Promise<Service> {
+  const saved_service = services_map[item.name];
+  if (saved_service != null) {
+    return saved_service;
+  }
+  if (services_init_pending_map[item.name]) {
+    return await services_init_pending_map[item.name];
+  }
+  try {
+    return await (services_init_pending_map[item.name] = (async () => {
+      const service_constructor: ServiceConstructor = item.value
+      const service = service_constructor.create();
+      const sub_services = await prepareModuleRequiredDependencies(item, [ ...pending_resolution, item.name ]);
+      if (typeof service.init == 'function') {
+        await service.init(sub_services);
+      }
+      return services_map[item.name] = service;
+    })());
+  } finally {
+    delete services_init_pending_map[item.name];
+ }
+}
+
+async function initSubModuleIfNeeded (item: DependencyTreeItem, init_by_dependent: boolean, pending_resolution: string[]): Promise<Module> {
+  const sub_module_entry: SubModuleEntry = item.value;
+  try {
+    if (sub_module_entry.pending_destroy) {
+      await sub_module_entry.pending_destroy;
+    }
+    if (sub_module_entry.pending_init == null && !sub_module_entry.initialized) {
+      sub_module_entry.pending_init = sub_module_entry.module.init(await prepareModuleRequiredDependencies(item, [ ...pending_resolution, sub_module_entry.name ]))
+        .then(() => {
+          sub_module_entry.initialized = true;
+          if (!init_by_dependent) {
+            sub_module_entry.init_by_dependent = false;
+          } else if (sub_module_entry.init_by_dependent === undefined) {
+            sub_module_entry.init_by_dependent = true;
+          }
+        });
+    }
+    await sub_module_entry.pending_init;
+    return sub_module_entry.module;
+  } finally {
+    delete sub_module_entry.pending_init;
+  }
+}
+
+async function destroyService (item: DependencyTreeItem): Promise<void> {
+  if (item.dependents.length != 0) {
+    throw new Error(`Cannot destroy a module with active dependents!`);
+  }
+  try {
+    if (services_init_pending_map[item.name]) {
+      await services_init_pending_map[item.name];
+    }
+    if (services_destroy_pending_map[item.name] == null && services_map[item.name] != null) {
+      const service = services_map[item.name];
+      services_destroy_pending_map[item.name] = (typeof service.destroy == 'function' ? service.destroy() : Promise.resolve())
+        .then(() => {
+          const promises = [];
+          delete services_map[item.name];
+          // remove the item from the saved dependency tree map
+          dependency_tree_item_map.delete(item.name);
+          // auto-destroy dependencies that has been initialized by the dependent
+          for (const dependency_wrapper of item.dependencies_wrapper) {
+            { // remove the destroyed item
+              const idx = dependency_wrapper.node.dependents.indexOf(item);
+              if (idx != -1) {
+                dependency_wrapper.node.dependents.splice(idx, 1);
+              }
+            }
+            if (dependency_wrapper.node.dependents.length == 0 && dependency_wrapper.node.type == 'service') {
+              promises.push(destroyService(dependency_wrapper.node));
+            }
+          }
+          return Promise.all(promises);
+        });
+    }
+    await services_destroy_pending_map[item.name];
+  } finally {
+    delete services_destroy_pending_map[item.name];
+  }
+}
+
+async function destroySubModule (item: DependencyTreeItem): Promise<void> {
+  if (item.dependents.length != 0) {
+    throw new Error(`Cannot destroy a module with active dependents!`);
+  }
+  const sub_module_entry: SubModuleEntry = item.value;
+  try {
+    if (sub_module_entry.pending_init) {
+      await sub_module_entry.pending_init;
+    }
+    if (sub_module_entry.pending_destroy == null && sub_module_entry.initialized) {
+      sub_module_entry.pending_destroy = sub_module_entry.module.destroy()
+        .then(() => {
+          const promises: Array<Promise<void>> = [];
+          sub_module_entry.initialized = false;
+          delete sub_module_entry.init_by_dependent;
+          // remove the item from the saved dependency tree map
+          dependency_tree_item_map.delete(item.name);
+          // auto-destroy dependencies that has been initialized by the dependent
+          for (const dependency_wrapper of item.dependencies_wrapper) {
+            { // remove the destroyed item
+              const idx = dependency_wrapper.node.dependents.indexOf(item);
+              if (idx != -1) {
+                dependency_wrapper.node.dependents.splice(idx, 1);
+              }
+            }
+            if (dependency_wrapper.node.dependents.length == 0) {
+              if (dependency_wrapper.node.type == 'module' && dependency_wrapper.node.value.init_by_dependent === false) {
+                continue; // skip auto-destroy
+              }
+              if (dependency_wrapper.node.type == 'module') {
+                promises.push(destroySubModule(dependency_wrapper.node));
+              } else if (dependency_wrapper.node.type == 'service') {
+                promises.push(destroySubModule(dependency_wrapper.node));
+              }
+            }
+          }
+          return Promise.all(promises) as any;
+        });
+    }
+    await sub_module_entry.pending_destroy;
+  } finally {
+    delete sub_module_entry.pending_destroy;
+  }
 }
 
 export function getSchema (): ModuleSchema {
@@ -87,22 +322,32 @@ export function getSchema (): ModuleSchema {
 }
 
 export async function init (): Promise<void> {
+  // register sub module services
   for (const sub_module_entry of sub_module_entries) {
-    await sub_module_entry.module.init(await prepareModuleDependentServices(sub_module_entry.module.getDependencies(), []));
+    if (typeof sub_module_entry.module.getServices == 'function') {
+      for (const { name, service_constructor } of sub_module_entry.module.getServices()) {
+        registerService(sub_module_entry.name + '.' + name, service_constructor);
+      }
+    }
+  }
+  // init all modules
+  for (const sub_module_entry of sub_module_entries) {
+    await initSubModuleIfNeeded(getModuleDependencyTree(sub_module_entry), false, []);
   }
 }
 
 export async function destroy (): Promise<void> {
-  for (const sub_module_entry of sub_module_entries) {
-    await sub_module_entry.module.destroy();
-  }
-  for (const service of Object.values(services_map)) {
-    if (typeof service.destroy == 'function') {
-      await service.destroy();
+  // wait for pending_init to end
+  await Promise.all(sub_module_entries.map((a) => a.pending_init == null ? Promise.resolve() : a.pending_init));
+  for (const entry of sub_module_entries) {
+    delete entry.init_by_dependent;
+    if (entry.initialized) {
+      const item = getModuleDependencyTree(entry);
+      if (item.dependents.length == 0) {
+        destroySubModule(item);
+      }
     }
   }
-  services_init_pending_map = {};
-  services_map = {};
 }
 
 export function getMethod (name: string): ModuleMethod | undefined {

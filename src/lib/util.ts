@@ -457,3 +457,26 @@ export const buildTokensBCMRFromTokensIdentity = (tokens_identity: TokensIdentit
   };
 };
 
+export const convertToJSONSerializable = (v: any): any => {
+  if (typeof v == 'bigint') {
+    return v+'';
+  }
+  if (v instanceof Error) {
+    v = {
+      message: v.message, name: v.name,
+      ...Object.fromEntries(['code'].filter((a) => v[a] != null).map((a) => [ a, v[a] ])),
+    };
+  } else if (Array.isArray(v)) {
+    v = Array.from(v).map(convertToJSONSerializable);
+  } else if (v && typeof v == 'object') {
+    if (v instanceof Uint8Array) {
+      v = binToHex(v);
+    } else {
+      v = Object.fromEntries(
+        Object.entries(v)
+          .map((a) => [ a[0], convertToJSONSerializable(a[1]) ])
+      )
+    }
+  }
+  return v;
+}
