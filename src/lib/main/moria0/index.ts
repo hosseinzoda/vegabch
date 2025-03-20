@@ -1,7 +1,8 @@
 import type { default as UTXOTracker, UTXOTrackerEntry } from '../utxo-tracker.js';
 import type ElectrumClientManager from '../electrum-client-manager.js';
 import type { ElectrumClient, ElectrumClientEvents, RPCNotification as ElectrumRPCNotification } from '@electrum-cash/network';
-import type { ModuleSchema, ModuleDependency, ModuleMethod, Service, ServiceConstructor } from '../types.js';
+import type { ModuleSchema, ModuleDependency, ModuleMethod, ServiceConstructor } from '../types.js';
+import type { Moria0StateManagerService, Moria0State } from './types.js';
 import { EventEmitter } from 'node:events';
 import VegaFileStorageProvider, { genWalletAddressInfo, WalletData } from '../vega-file-storage-provider.js';
 import {
@@ -23,16 +24,7 @@ import { InvalidProgramState, ValueError } from '../../exceptions.js';
 import { initModuleMethodWrapper, selectInputCoins } from '../helpers.js';
 import broadcastTransaction from '../network/broadcast-transaction.js';
 
-export type Moria0State = {
-  moria: cashlab_moria.MoriaV0;
-  moria_utxo: UTXOWithNFT;
-  oracle_utxo: UTXOWithNFT;
-  moria_locking_bytecode: Uint8Array;
-  loan_locking_bytecode: Uint8Array;
-  oracle_locking_bytecode: Uint8Array;
-  oracle_owner_pubkey: Uint8Array;
-};
-export class Moria0StateManager extends EventEmitter implements Service {
+export class Moria0StateManager extends EventEmitter implements Moria0StateManagerService {
   _moria_utxo_tracker_entry?: UTXOTrackerEntry;
   _oracle_utxo_tracker_entry?: UTXOTrackerEntry;
   _loans_utxo_tracker_entry?: UTXOTrackerEntry;
@@ -278,6 +270,11 @@ type MoriaV0InputServices = {
 
 const methods_wrapper = initModuleMethodWrapper();
 
+methods_wrapper.add('oracle-message', async ({ state_manager }: MoriaV0InputServices) => {
+  const { oracle_utxo } = await state_manager.requireMoriaState();
+  return MoriaV0.parseOracleMessageFromNFTCommitment(oracle_utxo.output.token.nft.commitment);
+});
+
 methods_wrapper.add('get-loans', async ({ state_manager }: MoriaV0InputServices) => {
   return state_manager.getLoans();
 });
@@ -320,7 +317,7 @@ methods_wrapper.add('mint-loan', async ({ vega_storage_provider, utxo_tracker, c
     },
   ];
   moria.setTxFeePerByte(txfee_per_byte == null ? 1n : txfee_per_byte);
-  const result = await moria.mintLoan(moria_utxo, oracle_utxo, input_coins, loan_amount, collateral_amount, addr_info.public_key_hash, addr_info.locking_bytecode, payout_rules);
+  const result = moria.mintLoan(moria_utxo, oracle_utxo, input_coins, loan_amount, collateral_amount, addr_info.public_key_hash, addr_info.locking_bytecode, payout_rules);
   if (verify) {
     moria.verifyTxResult(result);
   }
@@ -363,7 +360,7 @@ methods_wrapper.add('repay-loan', async ({ vega_storage_provider, utxo_tracker, 
     },
   ];
   moria.setTxFeePerByte(txfee_per_byte == null ? 1n : txfee_per_byte);
-  const result = await moria.repayLoan(moria_utxo, oracle_utxo, loan_utxo, addr_info.private_key, input_coins, payout_rules);
+  const result = moria.repayLoan(moria_utxo, oracle_utxo, loan_utxo, addr_info.private_key, input_coins, payout_rules);
   if (verify) {
     moria.verifyTxResult(result);
   }
@@ -403,7 +400,7 @@ methods_wrapper.add('liquidate-loan', async ({ vega_storage_provider, utxo_track
     },
   ];
   moria.setTxFeePerByte(txfee_per_byte == null ? 1n : txfee_per_byte);
-  const result = await moria.liquidateLoan(moria_utxo, oracle_utxo, loan_utxo, input_coins, payout_rules);
+  const result = moria.liquidateLoan(moria_utxo, oracle_utxo, loan_utxo, input_coins, payout_rules);
   if (verify) {
     moria.verifyTxResult(result);
   }
@@ -443,7 +440,7 @@ methods_wrapper.add('redeem-loan-with-sunset-sig', async ({ vega_storage_provide
     },
   ];
   moria.setTxFeePerByte(txfee_per_byte == null ? 1n : txfee_per_byte);
-  const result = await moria.redeemWithSunsetSignature(moria_utxo, oracle_utxo, loan_utxo, sunset_datasig, input_coins, payout_rules);
+  const result = moria.redeemWithSunsetSignature(moria_utxo, oracle_utxo, loan_utxo, sunset_datasig, input_coins, payout_rules);
   if (verify) {
     moria.verifyTxResult(result);
   }
@@ -486,7 +483,7 @@ methods_wrapper.add('loan-add-collateral', async ({ vega_storage_provider, utxo_
     },
   ];
   moria.setTxFeePerByte(txfee_per_byte == null ? 1n : txfee_per_byte);
-  const result = await moria.addCollateral(loan_utxo, amount, addr_info.private_key, input_coins, payout_rules);
+  const result = moria.addCollateral(loan_utxo, amount, addr_info.private_key, input_coins, payout_rules);
   if (verify) {
     moria.verifyTxResult(result);
   }
@@ -540,7 +537,7 @@ methods_wrapper.add('reduce-loan', async ({ vega_storage_provider, utxo_tracker,
     },
   ];
   moria.setTxFeePerByte(txfee_per_byte == null ? 1n : txfee_per_byte);
-  const result = await moria.refiLoan(moria_utxo, oracle_utxo, next_loan_amount, next_collateral_amount, loan_utxo, addr_info.private_key, addr_info.public_key_hash, input_coins, payout_rules);
+  const result = moria.refiLoan(moria_utxo, oracle_utxo, next_loan_amount, next_collateral_amount, loan_utxo, addr_info.private_key, addr_info.public_key_hash, input_coins, payout_rules);
   if (verify) {
     for (const tx_result of result.tx_result_chain) {
       moria.verifyTxResult(tx_result);

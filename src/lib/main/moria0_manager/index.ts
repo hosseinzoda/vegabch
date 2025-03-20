@@ -1,7 +1,7 @@
 import type { default as UTXOTracker, UTXOTrackerEntry } from '../utxo-tracker.js';
 import type ElectrumClientManager from '../electrum-client-manager.js';
 import VegaFileStorageProvider, { genWalletAddressInfo, WalletData, WalletAddressInfo } from '../vega-file-storage-provider.js';
-import { Moria0StateManager, Moria0State } from '../moria0/index.js';
+import { Moria0StateManagerService, Moria0State } from '../moria0/types.js';
 import type { ModuleSchema, ModuleDependency, ModuleMethod, Service, ServiceConstructor } from '../types.js';
 import {
   moria as cashlab_moria, common as cashlab_common, libauth,
@@ -48,7 +48,7 @@ type MoriaV0ManagerInputServices = {
   vega_storage_provider: VegaFileStorageProvider;
   console: Console;
   config: { path: string, data: any };
-  moria0_state_manager: Moria0StateManager;
+  moria0_state_manager: Moria0StateManagerService;
 };
 
 const methods_wrapper = initModuleMethodWrapper();
@@ -312,7 +312,7 @@ class Moria0LoanManager {
   _wallet_pkh: Uint8Array;
   _settings: Moria0LoanManagerSettings;
   _wallet_utxo_tracker_entry?: UTXOTrackerEntry;
-  _state_manager: Moria0StateManager;
+  _state_manager: Moria0StateManagerService;
   _utxo_tracker: UTXOTracker;
   _vega_storage_provider: VegaFileStorageProvider;
   _cauldron_client_manager: ElectrumClientManager;
@@ -342,7 +342,7 @@ class Moria0LoanManager {
     this._last_update_actions_pending_deposit = null;
     this._last_update_transaction_chain = null;
     this._last_update_error = null;
-    this._pending_update = null
+    this._pending_update = null;
     this._needs_to_update_timeout_id = null;
     this._last_updated_serialized_wallet_loans = null;
     this._mempool_error_count = 0;
@@ -1105,7 +1105,6 @@ To avoid liquidations deposit BCH or MUSD to ${this._wallet_name}'s wallet addre
           break;
         }
       }
-      this._needs_to_update_timeout_id = null;
     } catch (err) {
       this._console.info(`MoriaV0 loan manger (${this._wallet_name}), Pending updates failed, skipped updating!`);
       resolve();

@@ -76,8 +76,8 @@ export default class DaemonRun extends VegaCommand<typeof DaemonRun> {
         const authorized: boolean = auth_parts != null && (auth_parts[0]+'').toLowerCase() == 'basic' && verifyAValidAuth(Buffer.from(auth_parts.slice(1).join(' '), 'base64').toString('utf8'));
         const respond = (response: any, code?: number, headers?: any) => {
           const body = JSON.stringify(serializeMessage(response));
-          if (response instanceof RPCHTTPError) {
-            res.writeHead(response.status_code, response.status_message, headers || {});
+          if (response[0] instanceof RPCHTTPError) {
+            res.writeHead(response[0].status_code, response[0].status_message, headers || {});
           } else {
             if (code == null) {
               throw new Error('respond code is not defined!');
@@ -101,7 +101,7 @@ export default class DaemonRun extends VegaCommand<typeof DaemonRun> {
           let chunks: Buffer[] = [];
           req.on('data', (chunk) => {
             if (post_size > MAX_POST_SIZE) {
-              respond(new RPCHTTPError('Request body is too big!', { status_code: 413, status_message: 'Payload Too Large' }));
+              respond([new RPCHTTPError('Request body is too big!', { status_code: 413, status_message: 'Payload Too Large' }),null]);
               req.destroy();
               chunks = [];
               return;
@@ -110,33 +110,38 @@ export default class DaemonRun extends VegaCommand<typeof DaemonRun> {
             post_size += chunk.length;
           });
           req.on('end', () => {
-            let message;
             try {
-              message = deserializeMessage(JSON.parse(Buffer.concat(chunks).toString('utf8')));
-              chunks = [];
-            } catch (err) {
-              respond(new RPCHTTPError('Failed to parse the request body!', BAD_REQUEST_PAYLOAD));
-              return;
-            }
-            if (!Array.isArray(message) || message.length == 0 || typeof message[0] != 'string') {
-              respond(new RPCHTTPError(`Expecting the request message to be an array, And the first item in the array should be a string that represents the rpc method.`, BAD_REQUEST_PAYLOAD));
-              return;
-            }
-            let method = mainModule.getMethod(message[0]);
-            if (method == null) {
-              respond(new ValueError(`Method not found, name: ${message[0]}`), 404);
-              return;
-            }
-            ;(async () => {
+              let message;
               try {
-                respond([null, await method(...message.slice(1))], 200);
+                message = deserializeMessage(JSON.parse(Buffer.concat(chunks).toString('utf8')));
+                chunks = [];
               } catch (err) {
-                respond([err, null], 422);
+                respond([new RPCHTTPError('Failed to parse the request body!', BAD_REQUEST_PAYLOAD),null]);
+                return;
               }
-            })();
+              if (!Array.isArray(message) || message.length == 0 || typeof message[0] != 'string') {
+                respond([new RPCHTTPError(`Expecting the request message to be an array, And the first item in the array should be a string that represents the rpc method.`, BAD_REQUEST_PAYLOAD),null]);
+                return;
+              }
+              let method = mainModule.getMethod(message[0]);
+              if (method == null) {
+                respond([new ValueError(`Method not found, name: ${message[0]}`),null], 404);
+                return;
+              }
+              ;(async () => {
+                try {
+                  respond([null, await method(...message.slice(1))], 200);
+                } catch (err) {
+                  respond([err, null], 422);
+                }
+              })();
+            } catch (err) {
+              console.warn(err);
+              respond([new RPCHTTPError((err as any).message || 'Unknown error!', BAD_REQUEST_PAYLOAD),null]);
+            }
           });
         } catch (error) {
-          respond(error, error instanceof RPCHTTPError ? undefined : 500);
+          respond([error,null], error instanceof RPCHTTPError ? undefined : 500);
           req.destroy();
         }
       });
