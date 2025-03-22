@@ -6,8 +6,8 @@ import {
 } from '../../lib/util.js';
 import { ValueError } from '../../lib/exceptions.js';
 import { MUSDV0_SYMBOL, MUSDV0_DECIMALS } from '../../lib/constants.js';
-import type { UTXOWithNFT } from 'cashlab';
-import { uint8ArrayEqual, hexToBin } from 'cashlab/build/common/util.js';
+import type { UTXOWithNFT } from '@cashlab/common';
+import { uint8ArrayEqual, hexToBin } from '@cashlab/common/util.js';
 
 export default class Moria0LiquidateLoan extends VegaCommand<typeof Moria0LiquidateLoan> {
   static args = {
@@ -42,8 +42,7 @@ export default class Moria0LiquidateLoan extends VegaCommand<typeof Moria0Liquid
     const { args, flags } = this;
     const bch_token_info = getNativeBCHTokenInfo();
     const wallet_name = this.getSelectedWalletName();
-    const { moria: cashlab_moria } = await import('cashlab');
-    const { MoriaV0 } = cashlab_moria;
+    const { default: MoriaV0 } = await import('@cashlab/moria/v0/index.js');
     const loans: UTXOWithNFT[] = await this.callModuleMethod('moria0.get-loans');
     let selected_loan_outpoint;
     {

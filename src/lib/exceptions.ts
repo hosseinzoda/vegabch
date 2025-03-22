@@ -2,8 +2,8 @@ import {
   Exception, InternalError, NotFoundError,
   ValueError, NotImplemented, InvalidProgramState,
   BaseException, ExceptionRegistry, IBaseExceptionConstructor
-} from 'cashlab/build/common/exceptions.js';
-export * from 'cashlab/build/common/exceptions.js';
+} from '@cashlab/common/exceptions.js';
+export * from '@cashlab/common/exceptions.js';
 
 export class RPCHTTPError extends Exception {
   status_code: number;

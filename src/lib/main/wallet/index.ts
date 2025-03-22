@@ -10,11 +10,11 @@ import {
 } from '../../util.js';
 import { ValueError } from '../../exceptions.js';
 import { initModuleMethodWrapper } from '../helpers.js';
-import { libauth, UTXO, TokenId, NATIVE_BCH_TOKEN_ID } from 'cashlab';
-const {
+import { UTXO, TokenId, NATIVE_BCH_TOKEN_ID } from '@cashlab/common';
+import {
   generatePrivateKey, generateRandomSeed, generateRandomBytes,
   encodeBip39Mnemonic, assertSuccess,
-} = libauth;
+} from '@cashlab/common/libauth.js';
 
 const methods_wrapper = initModuleMethodWrapper();
 

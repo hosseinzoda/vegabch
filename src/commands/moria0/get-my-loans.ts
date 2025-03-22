@@ -4,7 +4,7 @@ import {
   getNativeBCHTokenInfo, bigIntToDecString, binToHex,
 } from '../../lib/util.js';
 import { MUSDV0_SYMBOL, MUSDV0_DECIMALS } from '../../lib/constants.js';
-import type { UTXOWithNFT } from 'cashlab';
+import type { UTXOWithNFT } from '@cashlab/common';
 
 export default class Moria0GetMyLoans extends VegaCommand<typeof Moria0GetMyLoans> {
   static args = {
@@ -24,8 +24,7 @@ export default class Moria0GetMyLoans extends VegaCommand<typeof Moria0GetMyLoan
 
   async run (): Promise<any> {
     const wallet_name = this.getSelectedWalletName();
-    const { moria: cashlab_moria } = await import('cashlab');
-    const { MoriaV0 } = cashlab_moria;
+    const { default: MoriaV0 } = await import('@cashlab/moria/v0/index.js');
     const bch_token_info = getNativeBCHTokenInfo();
     const loans: UTXOWithNFT[] = await this.callModuleMethod('moria0.get-my-loans', wallet_name);
     for (const loan of loans) {

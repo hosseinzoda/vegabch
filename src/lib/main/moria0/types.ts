@@ -1,9 +1,10 @@
 import type { Service } from '../types.js';
-import type { moria as cashlab_moria, UTXOWithNFT } from 'cashlab';
+import type { UTXOWithNFT } from '@cashlab/common';
+import type MoriaV0 from '@cashlab/moria/v0/index.js';
 import type { EventEmitter } from 'node:events';
 
 export type Moria0State = {
-  moria: cashlab_moria.MoriaV0;
+  moria: MoriaV0;
   moria_utxo: UTXOWithNFT;
   oracle_utxo: UTXOWithNFT;
   moria_locking_bytecode: Uint8Array;

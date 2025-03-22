@@ -1,4 +1,4 @@
-import type { Fraction, TokenId, TxResult, Exception } from 'cashlab';
+import type { Fraction, TokenId, TxResult, Exception } from '@cashlab/common';
 
 export type NotificationHookCommon = {
   name: string;

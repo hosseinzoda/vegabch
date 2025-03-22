@@ -4,8 +4,8 @@ import {
   convertTradeResultToJSON, fractionToDecString, BCMRIndexer, resolveArgRefTokenAToken,
   getNativeBCHTokenInfo, bigIntToDecString, bigIntFromDecString, buildTokensBCMRFromTokensIdentity,
 } from '../../lib/util.js';
-import type { TokenId } from 'cashlab';
-import { NATIVE_BCH_TOKEN_ID } from 'cashlab/build/common/constants.js';
+import type { TokenId } from '@cashlab/common';
+import { NATIVE_BCH_TOKEN_ID } from '@cashlab/common/constants.js';
 import { writeFile } from 'node:fs/promises';
 import type { TokensIdentity } from '../../lib/main/vega-file-storage-provider.js';
 

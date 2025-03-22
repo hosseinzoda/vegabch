@@ -1,8 +1,7 @@
 import type { NotificationHook, Moria0LoanManagerSettings, MoriaV0ManagerStorageData } from './types.js';
-import type { Fraction } from 'cashlab';
+import { convertFractionDenominator, Fraction } from '@cashlab/common';
 import { ValueError } from '../../exceptions.js';
 import { bigIntToDecString } from '../../util.js';
-import { convertFractionDenominator } from 'cashlab/build/common/util.js';
 
 export const loanManagerSettingsFromStorageData = (settings_data: any, storage_data: MoriaV0ManagerStorageData): Moria0LoanManagerSettings => {
   settings_data = structuredClone(settings_data);

@@ -6,18 +6,20 @@ import type { Moria0StateManagerService, Moria0State } from './types.js';
 import { EventEmitter } from 'node:events';
 import VegaFileStorageProvider, { genWalletAddressInfo, WalletData } from '../vega-file-storage-provider.js';
 import {
-  moria as cashlab_moria, common as cashlab_common, libauth,
-  UTXO, SpendableCoin, SpendableCoinType, PayoutRule, PayoutAmountRuleType, UTXOWithNFT, OutputWithFT,
-  TokenId, Fraction,
+  uint8ArrayEqual, 
+  UTXO, SpendableCoin, SpendableCoinType, PayoutRule, PayoutAmountRuleType,
+  UTXOWithNFT, OutputWithFT, TokenId, Fraction,
   NATIVE_BCH_TOKEN_ID,
-} from 'cashlab';
-const { MoriaV0 } = cashlab_moria;
-const { uint8ArrayEqual } = cashlab_common;
+} from '@cashlab/common';
+import MoriaV0 from '@cashlab/moria/v0/index.js';
 
-const {
+import {
   assertSuccess, decodeTransaction, decodeAuthenticationInstructions,
   binToNumberUint32LE, vmNumberToBigInt,
-} = libauth;
+  TransactionCommon as libauth_TransactionCommon,
+  AuthenticationInstructionMalformed as libauth_AuthenticationInstructionMalformed,
+  AuthenticationInstructionPush as libauth_AuthenticationInstructionPush
+} from '@cashlab/common/libauth.js';
 
 import { hexToBin, binToHex, deferredPromise, convertUTXOToJSON } from '../../util.js';
 import { InvalidProgramState, ValueError } from '../../exceptions.js';
@@ -215,14 +217,14 @@ export class Moria0StateManager extends EventEmitter implements Moria0StateManag
         const moria_utxo = this.selectMoriaUTXO(musd_token_id, this._moria_utxo_tracker_entry.data||[]);
         let oracle_owner_pubkey: Uint8Array;
         { // extract oracle owner_pubkey from last moria transaction
-          const last_transaction: libauth.TransactionCommon = assertSuccess(decodeTransaction(hexToBin(await client.request('blockchain.transaction.get', binToHex(moria_utxo.outpoint.txhash), false) as string)));
+          const last_transaction: libauth_TransactionCommon = assertSuccess(decodeTransaction(hexToBin(await client.request('blockchain.transaction.get', binToHex(moria_utxo.outpoint.txhash), false) as string)));
           // oracle unlocking
           const oracle_unlocking_instructions = decodeAuthenticationInstructions((last_transaction.inputs[1] as any).unlockingBytecode);
           const last_instruction = oracle_unlocking_instructions[oracle_unlocking_instructions.length - 1]
-          if (last_instruction == null || (last_instruction as libauth.AuthenticationInstructionMalformed).malformed || !(last_instruction.opcode >= 1 && last_instruction.opcode <= 78)) {
+          if (last_instruction == null || (last_instruction as libauth_AuthenticationInstructionMalformed).malformed || !(last_instruction.opcode >= 1 && last_instruction.opcode <= 78)) {
             throw new Error('last instruction of a p2sh (oracle) unlocking script should be a push opcode, got: ' + last_instruction?.opcode);
           }
-          const oracle_redeem_bytecode = (last_instruction as libauth.AuthenticationInstructionPush).data;
+          const oracle_redeem_bytecode = (last_instruction as libauth_AuthenticationInstructionPush).data;
           if (oracle_redeem_bytecode[0] != 0x21) {
             throw new Error('Expecting the oracle_redeem_script to begin with OP_PUSHDATA33!');
           }

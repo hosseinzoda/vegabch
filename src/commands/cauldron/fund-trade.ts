@@ -4,8 +4,8 @@ import {
   tradeResultFromJSON, BCMRIndexer, bigIntToDecString, buildTokensBCMRFromTokensIdentity,
 } from '../../lib/util.js';
 import type { TokensIdentity } from '../../lib/main/vega-file-storage-provider.js';
-import { NATIVE_BCH_TOKEN_ID } from 'cashlab/build/common/constants.js';
-import type { TradeResult } from 'cashlab/build/cauldron/types.js';
+import { NATIVE_BCH_TOKEN_ID } from '@cashlab/common/constants.js';
+import type { TradeResult } from '@cashlab/cauldron/types.js';
 import { readFile, writeFile } from 'node:fs/promises';
 
 const DEFAULT_DUST_TOKEN_MIN_IN_BCH = 100n;

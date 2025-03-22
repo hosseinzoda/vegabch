@@ -1,11 +1,10 @@
 import type { ModuleMethod } from './types.js';
 import {
-  common as cashlab_common,
+  bigIntArraySortPolyfill,
   OutputWithFT, SpendableCoin, TokenId,
   InsufficientFunds,
   NATIVE_BCH_TOKEN_ID
-} from 'cashlab';
-const { bigIntArraySortPolyfill } = cashlab_common;
+} from '@cashlab/common';
 
 export const initModuleMethodWrapper = () => {
   const methods: { [name: string]: ModuleMethod } = {};

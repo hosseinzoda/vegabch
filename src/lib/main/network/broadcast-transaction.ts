@@ -1,5 +1,4 @@
-import { libauth } from 'cashlab';
-const { hexToBin, binToHex, hashTransactionUiOrder } = libauth;
+import { hexToBin, binToHex, hashTransactionUiOrder } from '@cashlab/common/libauth.js';
 
 import type { ElectrumClient, ElectrumClientEvents, RPCNotification as ElectrumRPCNotification } from '@electrum-cash/network';
 

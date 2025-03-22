@@ -1,12 +1,11 @@
-import INITIAL_BCMR from '../vega-initial-bcmr.json' assert { type: 'json' };
+import INITIAL_BCMR from '../vega-initial-bcmr.json' with { type: 'json' };
 import type { Registry, IdentityHistory, IdentitySnapshot } from '../schemas/bcmr-v2.schema.js';
 import { isAValidNonNativeTokenId } from '../util.js';
-import { libauth } from 'cashlab';
-const {
+import {
   deriveHdPath, secp256k1, decodePrivateKeyWif, assertSuccess, hash160,
   publicKeyToP2pkhLockingBytecode, lockingBytecodeToCashAddress, encodePrivateKeyWif,
   deriveHdPrivateNodeFromBip39Mnemonic,
-} = libauth;
+} from '@cashlab/common/libauth.js';
 import type { Service } from './types.js';
 import { access, constants as fs_constants, readFile, writeFile } from 'node:fs/promises';
 

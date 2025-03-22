@@ -1,8 +1,7 @@
 import type ElectrumClientManager from '../electrum-client-manager.js';
 import type { ElectrumClient, ElectrumClientEvents, RPCNotification as ElectrumRPCNotification } from '@electrum-cash/network';
-import { common as cashlab_common, cauldron, TokenId } from 'cashlab';
-import { PoolV0 } from 'cashlab/build/cauldron/types.js';
-const { uint8ArrayEqual } = cashlab_common;
+import { uint8ArrayEqual, TokenId } from '@cashlab/common';
+import { ExchangeLab, PoolV0 } from '@cashlab/cauldron';
 import { parsePoolFromRostrumNodeData, deferredPromise } from '../../util.js';
 import { EventEmitter } from 'events';
 import type { ModuleDependency, Console } from '../types.js';
@@ -39,9 +38,9 @@ export default class PoolTracker extends EventEmitter {
   _client_manager: ElectrumClientManager | undefined;
   _entries: PoolTrackerEntry[];
   _pool_hashmap: Map<string, { pool: PoolV0, entry: PoolTrackerEntry }>;
-  _exlab: cauldron.ExchangeLab;
+  _exlab: ExchangeLab;
   _console: Console;
-  constructor (exlab: cauldron.ExchangeLab) {
+  constructor (exlab: ExchangeLab) {
     super();
     this._console = null as any;
     this._exlab = exlab;

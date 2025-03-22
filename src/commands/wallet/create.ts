@@ -51,7 +51,7 @@ export default class CreateWallet extends VegaCommand<typeof CreateWallet> {
   ];
 
   async run (): Promise<any> {
-    const { libauth } = await import('cashlab');
+    const libauth = await import('@cashlab/common/libauth.js');
     const { assertSuccess, decodePrivateKeyWif } = libauth;
     const { args, flags } = this;
     const wallet_name = args.name;

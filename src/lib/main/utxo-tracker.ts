@@ -1,8 +1,7 @@
 import type ElectrumClientManager from './electrum-client-manager.js';
 import type { ElectrumClient, ElectrumClientEvents, RPCNotification as ElectrumRPCNotification } from '@electrum-cash/network';
-import { libauth, common as cashlab_common, UTXO } from 'cashlab';
-const { uint8ArrayEqual } = cashlab_common;
-const { assertSuccess, lockingBytecodeToCashAddress } = libauth;
+import { uint8ArrayEqual, UTXO } from '@cashlab/common';
+import { assertSuccess, lockingBytecodeToCashAddress } from '@cashlab/common/libauth.js';
 import { EventEmitter } from 'node:events';
 import type { Service, Console, ServiceDependency } from './types.js';
 import { deferredPromise, parseElectrumUTXO } from '../util.js';

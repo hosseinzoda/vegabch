@@ -17,7 +17,7 @@ export default class WalletBCHDepositAddress extends VegaCommand<typeof WalletBC
   ];
 
   async run (): Promise<any> {
-    const { libauth } = await import('cashlab');
+    const libauth = await import('@cashlab/common/libauth.js');
     const { assertSuccess, lockingBytecodeToCashAddress } = libauth;
     const info = await this.callModuleMethod('wallet.info', this.getSelectedWalletName());
     const network_prefix = info.network === 'mainnet' ? 'bitcoincash' : 'bchtest';

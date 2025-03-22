@@ -3,10 +3,10 @@ import type ElectrumClientManager from '../electrum-client-manager.js';
 import type { ModuleSchema, ModuleDependency, ModuleMethod } from '../types.js';
 import VegaFileStorageProvider, { genWalletAddressInfo, WalletData } from '../vega-file-storage-provider.js';
 import {
-  cauldron, TokenId, NATIVE_BCH_TOKEN_ID, SpendableCoin, SpendableCoinType,
+  TokenId, NATIVE_BCH_TOKEN_ID, SpendableCoin, SpendableCoinType,
   PayoutRule, PayoutAmountRuleType, BurnTokenException,
-} from 'cashlab';
-import type { TradeResult } from 'cashlab/build/cauldron/types.js';
+} from '@cashlab/common';
+import { ExchangeLab, TradeResult } from '@cashlab/cauldron';
 
 import { initModuleMethodWrapper } from '../helpers.js';
 import broadcastTransaction from '../network/broadcast-transaction.js';
@@ -23,7 +23,7 @@ type CauldronInputServices = {
   vega_storage_provider: VegaFileStorageProvider;
   console: Console;
 };
-let exlab: cauldron.ExchangeLab, pool_tracker: PoolTracker;
+let exlab: ExchangeLab, pool_tracker: PoolTracker;
 
 methods_wrapper.add('construct-trade', async ({ vega_storage_provider }: CauldronInputServices, supply_token_id: TokenId, demand_token_id: TokenId, target: 'demand' | 'supply', amount: bigint, txfee_per_byte: bigint): Promise<{ result: TradeResult, build_duration: number }> => {
   if (supply_token_id == demand_token_id) {
@@ -170,7 +170,7 @@ export function getDependencies (): ModuleDependency[] {
 };
 
 export async function init (services: CauldronInputServices): Promise<void> {
-  exlab = new cauldron.ExchangeLab();
+  exlab = new ExchangeLab();
   applySettingsToExchangeLab(exlab, await services.vega_storage_provider.getSettings());
   pool_tracker = new PoolTracker(exlab);
   await pool_tracker.init({ cauldron_client_manager: services.cauldron_client_manager, console: services.console });

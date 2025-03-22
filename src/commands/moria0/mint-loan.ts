@@ -6,7 +6,7 @@ import {
 } from '../../lib/util.js';
 import { ValueError } from '../../lib/exceptions.js';
 import { MUSDV0_SYMBOL, MUSDV0_DECIMALS } from '../../lib/constants.js';
-import type { UTXOWithNFT } from 'cashlab';
+import type { UTXOWithNFT } from '@cashlab/common';
 
 export default class Moria0MintLoan extends VegaCommand<typeof Moria0MintLoan> {
   static args = {
@@ -46,8 +46,7 @@ export default class Moria0MintLoan extends VegaCommand<typeof Moria0MintLoan> {
     const { args, flags } = this;
     const bch_token_info = getNativeBCHTokenInfo();
     const wallet_name = this.getSelectedWalletName();
-    const { moria: cashlab_moria } = await import('cashlab');
-    const { MoriaV0 } = cashlab_moria;
+    const { default: MoriaV0 } = await import('@cashlab/moria/v0/index.js');
     const loan_amount = bigIntFromDecString(args.loan_amount, MUSDV0_DECIMALS);
     if (!(loan_amount >= BigInt(1 * MUSDV0_DECIMALS))) {
       throw new ValueError(`loan_amount should be greater than or equal to 1.0`);

@@ -1,11 +1,10 @@
 import {
-  libauth, common as cashlab_common, cauldron,
   PayoutRule, SpendableCoin, TokenId, Fraction, NATIVE_BCH_TOKEN_ID, OutputWithFT,
   PayoutAmountRuleType, SpendableCoinType, BurnTokenException,
   InsufficientFunds,
-} from 'cashlab';
-import type { PoolV0Parameters, PoolV0, TradeResult, TradeTxResult } from 'cashlab/build/cauldron/types.js';
-const { binToHex, hashTransactionUiOrder } = libauth;
+} from '@cashlab/common';
+import { binToHex, hashTransactionUiOrder } from '@cashlab/common/libauth.js';
+import type { ExchangeLab, PoolV0Parameters, PoolV0, TradeResult, TradeTxResult } from '@cashlab/cauldron';
 
 export type FundTradeResult = {
   pools_count: number;
@@ -82,7 +81,7 @@ export const validateTrade = (trade: TradeResult, trade_sum_list: TradeSumEntry[
   }
 };
 
-export default async function fundTrade (exlab: cauldron.ExchangeLab, trade: TradeResult, input_coins: SpendableCoin[], payout_rules: PayoutRule[], txfee_per_byte: bigint, options: { verify_transactions?: boolean } = {}): Promise<FundTradeResult> {
+export default async function fundTrade (exlab: ExchangeLab, trade: TradeResult, input_coins: SpendableCoin[], payout_rules: PayoutRule[], txfee_per_byte: bigint, options: { verify_transactions?: boolean } = {}): Promise<FundTradeResult> {
   const tokens_balance: Array<{ token_id: TokenId, value: bigint }> = [
     { token_id: NATIVE_BCH_TOKEN_ID, value: 0n }
   ];

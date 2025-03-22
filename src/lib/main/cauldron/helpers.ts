@@ -1,7 +1,7 @@
-import { cauldron } from 'cashlab'
+import type { ExchangeLab } from '@cashlab/cauldron'
 import type { Settings } from '../vega-file-storage-provider.js';
 
-export const applySettingsToExchangeLab = (exlab: cauldron.ExchangeLab, settings: Settings) => {
+export const applySettingsToExchangeLab = (exlab: ExchangeLab, settings: Settings) => {
   if ('preferred-token-output-bch-amount' in settings && settings['preferred-token-output-bch-amount'] != '') {
     try {
       const value = BigInt(settings['preferred-token-output-bch-amount']);

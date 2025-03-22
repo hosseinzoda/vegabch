@@ -4,17 +4,17 @@ import VegaFileStorageProvider, { genWalletAddressInfo, WalletData, WalletAddres
 import { Moria0StateManagerService, Moria0State } from '../moria0/types.js';
 import type { ModuleSchema, ModuleDependency, ModuleMethod, Service, ServiceConstructor } from '../types.js';
 import {
-  moria as cashlab_moria, common as cashlab_common, libauth,
-  InvalidProgramState,
+  FIXED_PAYOUT_RULE_APPLY_MIN_AMOUNT, convertTokenIdToUint8Array,
   UTXO, UTXOWithNFT, Output, OutputWithFT, TokenId, Fraction, TxResult,
   NATIVE_BCH_TOKEN_ID, SpendableCoin, SpendableCoinType, PayoutRule, PayoutAmountRuleType, 
-} from 'cashlab';
-import type { OracleNFTParameters } from 'cashlab/build/moria/v0/types.js';
-const { MoriaV0 } = cashlab_moria;
-const { FIXED_PAYOUT_RULE_APPLY_MIN_AMOUNT, convertTokenIdToUint8Array } = cashlab_common;
+  InvalidProgramState,
+  uint8ArrayEqual, convertFractionDenominator, bigIntArraySortPolyfill, bigIntMax, bigIntMin,
+  createPayoutChainedTx, CreatePayoutTxContext,
+} from '@cashlab/common';
+import * as libauth from '@cashlab/common/libauth.js';
+import type { OracleNFTParameters } from '@cashlab/moria/v0/types.js';
+import MoriaV0 from '@cashlab/moria/v0/index.js';
 import { serializeMessage } from '../../json-ipc-serializer.js';
-
-const { uint8ArrayEqual, convertFractionDenominator, bigIntArraySortPolyfill, bigIntMax, bigIntMin } = cashlab_common;
 
 import path from 'node:path';
 import http from 'node:http';
@@ -459,7 +459,7 @@ class Moria0LoanManager {
           });
         }
       }
-      const create_payout_tx_context: cashlab_common.CreatePayoutTxContext = {
+      const create_payout_tx_context: CreatePayoutTxContext = {
         getOutputMinAmount (output: Output): bigint {
           const lauth_output: libauth.Output = {
             lockingBytecode: output.locking_bytecode,
@@ -481,7 +481,7 @@ class Moria0LoanManager {
         },
         txfee_per_byte: update_state.settings.txfee_per_byte,
       };
-      const result = cashlab_common.createPayoutChainedTx(create_payout_tx_context, selected_inputs, remint_payout_rules);
+      const result = createPayoutChainedTx(create_payout_tx_context, selected_inputs, remint_payout_rules);
       for (const tx_result of result.chain) {
         update_state.transaction_chain.push({
           action: 'remint-coins',

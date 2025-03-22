@@ -1,11 +1,11 @@
 import type { Registry, IdentityHistory, IdentitySnapshot } from './schemas/bcmr-v2.schema.js';
-import type { cauldron, Fraction, TokenId, UTXO } from 'cashlab';
-import { hexToBin, binToHex, convertFractionDenominator } from 'cashlab/build/common/util.js';
-import { NATIVE_BCH_TOKEN_ID } from 'cashlab/build/common/constants.js';
-import type { PoolV0Parameters, PoolV0, TradeResult, PoolTrade } from 'cashlab/build/cauldron/types.js';
+import type { Fraction, TokenId, UTXO } from '@cashlab/common';
+import { hexToBin, binToHex, convertFractionDenominator } from '@cashlab/common/util.js';
+import { NATIVE_BCH_TOKEN_ID } from '@cashlab/common/constants.js';
+import type { ExchangeLab, PoolV0Parameters, PoolV0, TradeResult, PoolTrade } from '@cashlab/cauldron';
 import type { TokensIdentity } from './main/vega-file-storage-provider.js';
 
-export { hexToBin, binToHex } from 'cashlab/build/common/util.js';
+export { hexToBin, binToHex } from '@cashlab/common/util.js';
 
 export const moriaTxResultSummaryJSON = (data: any): any => {
   return {
@@ -357,7 +357,7 @@ export const tokensBalanceDetailFromUTXOList = (utxo_list: UTXO[]): TokenBalance
 };
 
 
-export const parsePoolFromRostrumNodeData  = (exlab: cauldron.ExchangeLab, rn_pool: any): PoolV0 | null => {
+export const parsePoolFromRostrumNodeData  = (exlab: ExchangeLab, rn_pool: any): PoolV0 | null => {
   if (rn_pool.is_withdrawn) {
     return null
   }
