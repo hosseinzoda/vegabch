@@ -21,7 +21,7 @@ import {
   AuthenticationInstructionPush as libauth_AuthenticationInstructionPush
 } from '@cashlab/common/libauth.js';
 
-import { hexToBin, binToHex, deferredPromise, convertUTXOToJSON } from '../../util.js';
+import { hexToBin, binToHex, deferredPromise, convertUTXOToJSON, electrumClientSendRequest } from '../../util.js';
 import { InvalidProgramState, ValueError } from '../../exceptions.js';
 import { initModuleMethodWrapper, selectInputCoins } from '../helpers.js';
 import broadcastTransaction from '../network/broadcast-transaction.js';
@@ -217,7 +217,7 @@ export class Moria0StateManager extends EventEmitter implements Moria0StateManag
         const moria_utxo = this.selectMoriaUTXO(musd_token_id, this._moria_utxo_tracker_entry.data||[]);
         let oracle_owner_pubkey: Uint8Array;
         { // extract oracle owner_pubkey from last moria transaction
-          const last_transaction: libauth_TransactionCommon = assertSuccess(decodeTransaction(hexToBin(await client.request('blockchain.transaction.get', binToHex(moria_utxo.outpoint.txhash), false) as string)));
+          const last_transaction: libauth_TransactionCommon = assertSuccess(decodeTransaction(hexToBin(await electrumClientSendRequest(client, 'blockchain.transaction.get', binToHex(moria_utxo.outpoint.txhash), false) as string)));
           // oracle unlocking
           const oracle_unlocking_instructions = decodeAuthenticationInstructions((last_transaction.inputs[1] as any).unlockingBytecode);
           const last_instruction = oracle_unlocking_instructions[oracle_unlocking_instructions.length - 1]

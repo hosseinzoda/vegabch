@@ -42,9 +42,9 @@
     "vegabch": "./bin/run.js"
   },
   "dependencies": {
-    "@cashlab/common": "^1.0.1",
     "@cashlab/cauldron": "^1.0.0",
-    "@cashlab/moria": "^1.0.0",
+    "@cashlab/common": "^1.0.4",
+    "@cashlab/moria": "^1.1.1",
     "@electrum-cash/network": "^4.1.1",
     "@oclif/core": "^3",
     "@oclif/plugin-help": "^6",
@@ -54,15 +54,18 @@
   "devDependencies": {
     "@oclif/prettier-config": "^0.2.1",
     "@oclif/test": "^3",
-    "@types/chai": "^4",
-    "@types/mocha": "^10",
-    "@types/node": "^18",
+    "@types/chai": "^4.3.20",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^18.19.112",
     "@types/nodemailer": "^6.4.17",
     "chai": "^4",
     "mocha": "^10",
     "oclif": "^4",
     "shx": "^0.3.3",
     "ts-node": "^10",
-    "typescript": "^5"
+    "typescript": "^5.8.3"
+  },
+  "overrides": {
+    "@cashlab/common": "$@cashlab/common"
   }
 }

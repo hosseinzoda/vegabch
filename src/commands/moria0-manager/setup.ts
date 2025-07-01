@@ -4,8 +4,9 @@ import { bigIntFromDecString } from '../../lib/util.js';
 import { MUSDV0_SYMBOL, MUSDV0_DECIMALS } from '../../lib/constants.js';
 import type { Moria0LoanManagerSettings } from '../../lib/main/moria0_manager/types.js';
 import {
-  fractionAsReadableText, deserializeSettings, validateSettings,
+  deserializeSettings, validateSettings,
 } from '../../lib/main/moria0_manager/helpers.js';
+import { fractionAsReadableText } from '../../lib/util.js';
 import { ValueError } from '../../lib/exceptions.js';
 
 export default class Moria0ManagerSetup extends VegaCommand<typeof Moria0ManagerSetup> {
@@ -34,7 +35,7 @@ export default class Moria0ManagerSetup extends VegaCommand<typeof Moria0Manager
       required: true,
     }),
     'margin-call-warning-collateral-rate': Flags.string({
-      description: 'settings.below_target_collateral_refi_threshold (type: fraction).',
+      description: 'settings.margin_call_warning_collateral_rate (type: fraction).',
       required: true,
     }),
     'max-loan-amount-per-utxo': Flags.string({
@@ -103,8 +104,12 @@ export default class Moria0ManagerSetup extends VegaCommand<typeof Moria0Manager
     const settings = deserializeSettings({
       target_loan_amount: bigIntFromDecString(flags['target-loan-amount'], MUSDV0_DECIMALS),
       target_collateral_rate: flags['target-collateral-rate'],
-      above_target_collateral_refi_threshold: flags['above-target-collateral-refi-threshold'],
-      below_target_collateral_refi_threshold: flags['below-target-collateral-refi-threshold'],
+      above_target_collateral_refi_threshold:
+        flags['above-target-collateral-refi-threshold'].toLowerCase() == 'null' ? null :
+        flags['above-target-collateral-refi-threshold'],
+      below_target_collateral_refi_threshold:
+        flags['below-target-collateral-refi-threshold'].toLowerCase() == 'null' ? null :
+        flags['below-target-collateral-refi-threshold'],
       margin_call_warning_collateral_rate: flags['margin-call-warning-collateral-rate'],
       max_loan_amount_per_utxo: bigIntFromDecString(flags['max-loan-amount-per-utxo'], MUSDV0_DECIMALS),
       retarget_min_musd_amount: bigIntFromDecString(flags['retarget_min_musd_amount'], MUSDV0_DECIMALS),

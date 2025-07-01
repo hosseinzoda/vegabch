@@ -1,4 +1,9 @@
 
 export const MUSDV0_DECIMALS = 2;
-export const MUSDV0_SYMBOL = 'MUSD';
+export const MUSDV0_SYMBOL = 'MUSDV0';
 export const MUSDV0_TOKEN_ID = '4046913cba6b70b2214a048a3df92252849f481ffa1455ed7faf17243c36bf67';
+
+
+export const MUSDV1_DECIMALS = 2;
+export const MUSDV1_SYMBOL = 'MUSD';
+export const MUSDV1_TOKEN_ID = 'b38a33f750f84c5c169a6f23cb873e6e79605021585d4f3408789689ed87f366';

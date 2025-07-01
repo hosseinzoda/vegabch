@@ -120,15 +120,32 @@
     },
     "4046913cba6b70b2214a048a3df92252849f481ffa1455ed7faf17243c36bf67": {
       "2024-11-21T06:51:35.409Z": {
-        "name": "Moria USD",
-        "description": "Moria Protocol USD v1. This is an experimental run of the Moria Protocol.",
+        "name": "Moria USDv0",
+        "description": "Moria Protocol USD v0. This is an experimental run of the Moria Protocol ending May 30th 2025.",
         "token": {
           "category": "4046913cba6b70b2214a048a3df92252849f481ffa1455ed7faf17243c36bf67",
-          "symbol": "MUSD",
+          "symbol": "MUSDv0",
           "decimals": 2
         },
         "uris": {
           "icon": "https://meta.moria.money/b1.png",
+          "web": "https://moria.money",
+          "x": "https://x.com/MoriaMoney/",
+          "telegram": "https://t.me/moriamoney"
+        }
+      }
+    },
+    "b38a33f750f84c5c169a6f23cb873e6e79605021585d4f3408789689ed87f366": {
+      "2024-11-21T06:51:35.409Z": {
+        "name": "Moria USD",
+        "description": "Moria Protocol MUSD v1.",
+        "token": {
+          "category": "b38a33f750f84c5c169a6f23cb873e6e79605021585d4f3408789689ed87f366",
+          "symbol": "MUSD",
+          "decimals": 2
+        },
+        "uris": {
+          "icon": "https://meta.moria.money/m1.png",
           "web": "https://moria.money",
           "x": "https://x.com/MoriaMoney/",
           "telegram": "https://t.me/moriamoney"

@@ -4,6 +4,8 @@ import * as network from './network/index.js';
 import * as cauldron from './cauldron/index.js';
 import * as moria0 from './moria0/index.js';
 import * as moria0_manager from './moria0_manager/index.js';
+import * as moria1 from './moria1/index.js';
+import * as token from './token/index.js';
 import type {
   ModuleSchema, ServiceDependency, ModuleDependency, ModuleMethod,
   Module, ServiceConstructor, Service,
@@ -27,6 +29,8 @@ const sub_module_entries: SubModuleEntry[] = [
   { name: 'cauldron', module: cauldron },
   { name: 'moria0', module: moria0 },
   { name: 'moria0_manager', module: moria0_manager },
+  { name: 'moria1', module: moria1 },
+  { name: 'token', module: token },
 ].map((a) => ({ ...a, initialized: false }));
 
 let services_init_pending_map: { [name: string]: Promise<any> } = {};

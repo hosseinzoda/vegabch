@@ -6,6 +6,7 @@ import {
   publicKeyToP2pkhLockingBytecode, lockingBytecodeToCashAddress, encodePrivateKeyWif,
   deriveHdPrivateNodeFromBip39Mnemonic,
 } from '@cashlab/common/libauth.js';
+import { EventEmitter } from 'node:events';
 import type { Service } from './types.js';
 import { access, constants as fs_constants, readFile, writeFile } from 'node:fs/promises';
 
@@ -29,9 +30,15 @@ export type WalletData = |
   SingleAddressHDWalletData |
   WifWalletData;
 
-export type WalletEntry = {
+export type InternalWalletEntry = {
   name: string;
   wallet: string; // serlialized wallet data
+  settings: { [name: string]: any };
+};
+
+export type WalletMetadata = {
+  name: string;
+  settings: { [name: string]: any };
 };
 
 export const parseWalletData = (str: string): WalletData => {
@@ -84,6 +91,10 @@ export type WalletAddressInfo = {
   private_key?: Uint8Array;
 };
 
+export type WalletAddressInfoWithPrivateKey = WalletAddressInfo & {
+  private_key: Uint8Array;
+};
+
 export const genWalletAddressInfo = (data: WalletData): WalletAddressInfo => {
   let private_key: Uint8Array;
   if (data.type == 'single-address-seed') {
@@ -123,7 +134,7 @@ export type Settings = {
   [setting_name: string]: string;
 };
 export type VegaFileStorageData = {
-  wallets: WalletEntry[];
+  wallets: InternalWalletEntry[];
   tokens_identity: TokensIdentity
   pinned_wallet_name?: string;
   settings: Settings;
@@ -163,9 +174,10 @@ export const initWalletsFileDataTokenIdentities = (): { [token_id: string]: { au
   return result;
 };
 
-export default class VegaFileStorageProvider implements Service {
+export default class VegaFileStorageProvider extends EventEmitter implements Service {
   _filename: string;
   constructor (filename: string) {
+    super();
     this._filename = filename;
   }
   async init (): Promise<void> {
@@ -197,6 +209,34 @@ export default class VegaFileStorageProvider implements Service {
   async _writeData (data: VegaFileStorageData): Promise<void> {
     await writeFile(this._filename, JSON.stringify(data, null, '  '));
   }
+  _validateWalletMetadata (metadata: WalletMetadata): void {
+    if (typeof metadata.name != 'string' || metadata.name == '') {
+      throw new Error(`Invalid name, value: ${metadata.name}(${typeof metadata.name})`);
+    }
+    if (typeof metadata.settings != 'object' || metadata.settings == null) {
+      throw new Error(`Invalid settings, Expecting an object, type: ${typeof metadata.settings}`);
+    }
+  }
+  _createInternalWalletEntry (metadata: WalletMetadata, wallet_data: WalletData): InternalWalletEntry {
+    this._validateWalletMetadata(metadata);
+    return {
+      name: metadata.name,
+      wallet: stringifyWalletData(wallet_data),
+      settings: metadata.settings,
+    };
+  }
+  _parseInternalWalletEntry (entry: InternalWalletEntry): { metadata: WalletMetadata, wallet_data: WalletData } {
+    if (typeof entry.name != 'string' || entry.name == '') {
+      throw new Error(`A wallet entry with an invalid name, value: ${entry.name}(${typeof entry.name})`);
+    }
+    if (typeof entry.wallet != 'string' || entry.wallet == '') {
+      throw new Error(`A wallet entry with an invalid wallet data, value type: ${typeof entry.wallet}`);
+    }
+    const metadata = { name: entry.name, settings: entry.settings || {} };
+    this._validateWalletMetadata(metadata);
+    const wallet_data = parseWalletData(entry.wallet);
+    return { metadata, wallet_data };
+  }
   async storeTokensIdentity (tokens_identity: TokensIdentity): Promise<void> {
     const data = await this._readData();
     data.tokens_identity = tokens_identity;
@@ -209,6 +249,7 @@ export default class VegaFileStorageProvider implements Service {
     const data = await this._readData();
     data.settings = settings;
     await this._writeData(data);
+    this.emit('settings-change', data.settings);
   }
   async getSettings (): Promise<Settings> {
     return (await this._readData()).settings || {};
@@ -227,28 +268,60 @@ export default class VegaFileStorageProvider implements Service {
   async getPinnedWalletName (): Promise<string | undefined> {
     return (await this._readData()).pinned_wallet_name;
   }
-  async getWalletEntry (name: string): Promise<WalletEntry | undefined> {
+
+
+  async updateWalletMetadata (metadata: WalletMetadata): Promise<void> {
+    this._validateWalletMetadata(metadata);
     const data = await this._readData();
-    return data.wallets.find((a) => a.name == name);
+    const entry = data.wallets.find((a) => a.name == metadata.name);
+    if (entry == null) {
+      throw new Error('Wallet does not exists!, name: ' + name);
+    }
+    entry.settings = metadata.settings;
+    await this._writeData(data);
+    this.emit('wallet-metadata-change', metadata);
   }
-  async getWalletEntries (): Promise<WalletEntry[]> {
-    return (await this._readData()).wallets;
-  }
-  async addWalletEntry (name: string, wallet_data: WalletData): Promise<void> {
+  async insertWallet (metadata: WalletMetadata, wallet_data: WalletData): Promise<void> {
+    const entry = this._createInternalWalletEntry(metadata, wallet_data);
     const data = await this._readData();
-    const wallet_entry = data.wallets.find((a) => a.name == name);
-    if (wallet_entry != null) {
+    const existing_entry = data.wallets.find((a) => a.name == entry.name);
+    if (existing_entry != null) {
       throw new Error('Wallet is already defined!, name: ' + name);
     }
-    const entry = { name, wallet: stringifyWalletData(wallet_data) };
     data.wallets.push(entry);
     await this._writeData(data);
   }
-  async getWalletData (name: string): Promise<WalletData | undefined> {
-    const wallet_entry = await this.getWalletEntry(name);
-    if (!wallet_entry) {
-      return undefined;
+
+  async getAllWallets (): Promise<Array<{ metadata: WalletMetadata, wallet_data: WalletData }>> {
+    const data = await this._readData();
+    return data.wallets.map((entry) => this._parseInternalWalletEntry(entry));
+  }
+  async getAllWalletsMetadata (): Promise<WalletMetadata[]> {
+    const data = await this._readData();
+    return data.wallets.map((entry) => this._parseInternalWalletEntry(entry).metadata);
+  }
+  async getWalletMetadata (name: string): Promise<WalletMetadata | undefined> {
+    const data = await this._readData();
+    const entry = data.wallets.find((a) => a.name == name);
+    if (entry == null) {
+      return;
     }
-    return parseWalletData(wallet_entry.wallet);
+    return this._parseInternalWalletEntry(entry).metadata;
+  }
+  async getWalletData (name: string): Promise<WalletData | undefined> {
+    const data = await this._readData();
+    const entry = data.wallets.find((a) => a.name == name);
+    if (entry == null) {
+      return;
+    }
+    return this._parseInternalWalletEntry(entry).wallet_data;
+  }
+  async getWalletDataWithMetadata (name: string): Promise<{ metadata: WalletMetadata, wallet_data: WalletData } | undefined> {
+    const data = await this._readData();
+    const entry = data.wallets.find((a) => a.name == name);
+    if (entry == null) {
+      return;
+    }
+    return this._parseInternalWalletEntry(entry);
   }
 }

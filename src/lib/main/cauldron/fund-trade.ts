@@ -104,7 +104,7 @@ export default async function fundTrade (exlab: ExchangeLab, trade: TradeResult,
     }
   }
 
-  const selected_input_coins = [];
+  const selected_input_coins: SpendableCoin[] = [];
   { // select input_coins
     const mixed_utxo_min_bch_amount = 5000n;
     const estimated_txfee = BigInt(trade.entries.length) * 197n * txfee_per_byte + 500n;

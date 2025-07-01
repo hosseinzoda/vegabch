@@ -5,9 +5,11 @@ import VegaFileStorageProvider, {
 } from '../vega-file-storage-provider.js';
 import type { ModuleSchema, ModuleDependency, ModuleMethod } from '../types.js';
 import {
-  getNativeBCHTokenInfo, bigIntToDecString, TokenBalanceDetail, tokensBalanceDetailFromUTXOList,
+  getNativeBCHTokenInfo, bigIntToDecString, TokenBalanceDetail,
+  tokensBalanceDetailFromUTXOList, readableTokenBalance,
   BCMRIndexer, buildTokensBCMRFromTokensIdentity,
 } from '../../util.js';
+
 import { ValueError } from '../../exceptions.js';
 import { initModuleMethodWrapper } from '../helpers.js';
 import { UTXO, TokenId, NATIVE_BCH_TOKEN_ID } from '@cashlab/common';
@@ -32,19 +34,11 @@ methods_wrapper.add('balance', async ({ vega_storage_provider, utxo_tracker }: W
   const addr_info = genWalletAddressInfo(wallet_data);
   const utxo_list: UTXO[] = await utxo_tracker.getUTXOListForLockingBytecode(addr_info.locking_bytecode);
   const result: TokenBalanceDetail[] = tokensBalanceDetailFromUTXOList(utxo_list);
-  const readableTokenBalance = (token_id: TokenId, amount: bigint): { symbol: string, amount: string } => {
-    const token_identity = token_id != NATIVE_BCH_TOKEN_ID ? bcmr_indexer.getTokenCurrentIdentity(token_id) : null;
-    const token_info = token_id == NATIVE_BCH_TOKEN_ID  ? getNativeBCHTokenInfo() : token_identity?.token;
-    const symbol = token_info?.symbol ? token_info.symbol : token_id;
-    const decimals = token_info?.decimals != null && token_info?.decimals > 0 ? token_info.decimals : 0;
-    const amount_dec = bigIntToDecString(amount, decimals);
-    return { symbol, amount: amount_dec };
-  };
   return result.map((item) => ({
     ...item,
-    summary_readable: readableTokenBalance(item.token_id, item.confirmed_balance + item.unconfirmed_balance),
-    confirmed_readable: readableTokenBalance(item.token_id, item.confirmed_balance),
-    unconfirmed_readable: readableTokenBalance(item.token_id, item.unconfirmed_balance),
+    summary_readable: readableTokenBalance(item.token_id, item.confirmed_balance + item.unconfirmed_balance, bcmr_indexer),
+    confirmed_readable: readableTokenBalance(item.token_id, item.confirmed_balance, bcmr_indexer),
+    unconfirmed_readable: readableTokenBalance(item.token_id, item.unconfirmed_balance, bcmr_indexer),
   }));
 });
 
@@ -93,11 +87,15 @@ methods_wrapper.add('create', async ({ vega_storage_provider }: WalletInputServi
   }
   genWalletAddressInfo(wallet_data);
   await vega_storage_provider.init();
-  const saved_wallet_record = await vega_storage_provider.getWalletEntry(wallet_name);
+  const saved_wallet_record = await vega_storage_provider.getWalletMetadata(wallet_name);
   if (saved_wallet_record) {
     throw new Error('Wallet already exists, name: ' + wallet_name);
   }
-  await vega_storage_provider.addWalletEntry(wallet_name, wallet_data);
+  const metadata = {
+    name: wallet_name,
+    settings: {},
+  };
+  await vega_storage_provider.insertWallet(metadata, wallet_data);
 });
 
 methods_wrapper.add('generate', async ({ vega_storage_provider }: WalletInputServices, wallet_name: string, wallet_type: WalletDataType, network: WalletDataNetwork, params: any): Promise<void> => {
@@ -123,18 +121,21 @@ methods_wrapper.add('generate', async ({ vega_storage_provider }: WalletInputSer
   }
   genWalletAddressInfo(wallet_data);
   await vega_storage_provider.init();
-  const saved_wallet_record = await vega_storage_provider.getWalletEntry(wallet_name);
+  const saved_wallet_record = await vega_storage_provider.getWalletMetadata(wallet_name);
   if (saved_wallet_record) {
     throw new Error('Wallet already exists, name: ' + wallet_name);
   }
-  await vega_storage_provider.addWalletEntry(wallet_name, wallet_data);
+  const metadata = {
+    name: wallet_name,
+    settings: {},
+  };
+  await vega_storage_provider.insertWallet(metadata, wallet_data);
 });
 
 methods_wrapper.add('list', async ({ vega_storage_provider }: WalletInputServices): Promise<Array<{ name: string, type: string, network: string }>> => {
-  return (await vega_storage_provider.getWalletEntries())
-    .map((entry) => {
-      const [ wallet_type, network ]: Array<string | undefined> = entry.wallet.split(":");
-      return { name: entry.name, type: (wallet_type || '') as WalletDataType, network: (network || '') as WalletDataNetwork };
+  return (await vega_storage_provider.getAllWallets())
+    .map(({ metadata, wallet_data }) => {
+      return { name: metadata.name, type: wallet_data.type, network: wallet_data.network };
     });
 });
 

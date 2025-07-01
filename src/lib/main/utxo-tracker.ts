@@ -4,7 +4,7 @@ import { uint8ArrayEqual, UTXO } from '@cashlab/common';
 import { assertSuccess, lockingBytecodeToCashAddress } from '@cashlab/common/libauth.js';
 import { EventEmitter } from 'node:events';
 import type { Service, Console, ServiceDependency } from './types.js';
-import { deferredPromise, parseElectrumUTXO } from '../util.js';
+import { deferredPromise, parseElectrumUTXO, electrumClientSendRequest } from '../util.js';
 
 type TimeoutId = ReturnType<typeof setTimeout>;
 export type UTXOTrackerRefId = string;
@@ -162,7 +162,7 @@ export default class UTXOTracker extends EventEmitter implements Service {
           await entry.pending_request;
           return; // exit
         }
-        const result = await client.request('blockchain.address.listunspent', entry.cashaddr, 'include_tokens');
+        const result = await electrumClientSendRequest(client, 'blockchain.address.listunspent', entry.cashaddr, 'include_tokens');
         if (entry.pending_request != pending_promise) {
           return; // exit
         }
@@ -198,7 +198,7 @@ export default class UTXOTracker extends EventEmitter implements Service {
     entry.pending_request = pending_promise;
     ;(async () => {
       try {
-        const result = await client.request('blockchain.address.listunspent', entry.cashaddr, 'include_tokens');
+        const result = await electrumClientSendRequest(client, 'blockchain.address.listunspent', entry.cashaddr, 'include_tokens');
         if (entry.pending_request != pending_promise) {
           await entry.pending_request;
           return; // exit

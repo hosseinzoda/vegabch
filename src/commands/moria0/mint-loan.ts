@@ -2,7 +2,7 @@ import { Args, Flags } from '@oclif/core';
 import VegaCommand, { VegaCommandOptions, selectWalletFlags } from '../../lib/vega-command.js';
 import {
   getNativeBCHTokenInfo, bigIntToDecString, binToHex, bigIntFromDecString,
-  moriaTxResultSummaryJSON, convertUTXOToJSON,
+  cashlabTxResultSummaryJSON, convertUTXOToJSON,
 } from '../../lib/util.js';
 import { ValueError } from '../../lib/exceptions.js';
 import { MUSDV0_SYMBOL, MUSDV0_DECIMALS } from '../../lib/constants.js';
@@ -72,7 +72,7 @@ export default class Moria0MintLoan extends VegaCommand<typeof Moria0MintLoan> {
       this.log(`  Parse error: [${(err as any).name}] ${(err as any).message}`);
     }
     return {
-      ...moriaTxResultSummaryJSON(result),
+      ...cashlabTxResultSummaryJSON(result),
       loan_utxo: convertUTXOToJSON(result.loan_utxo),
       oracle_use_fee: result.oracle_use_fee+'',
     };

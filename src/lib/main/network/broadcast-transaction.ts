@@ -1,4 +1,5 @@
 import { hexToBin, binToHex, hashTransactionUiOrder } from '@cashlab/common/libauth.js';
+import { electrumClientSendRequest } from '../../util.js';
 
 import type { ElectrumClient, ElectrumClientEvents, RPCNotification as ElectrumRPCNotification } from '@electrum-cash/network';
 
@@ -43,21 +44,14 @@ export default function broadcastTransaction (client: ElectrumClient<ElectrumCli
         client.addListener('notification', onNotification);
         await client.subscribe('blockchain.transaction.subscribe', txhash);
         try {
-          const result = await client.request('blockchain.transaction.broadcast', txhex);
-          if (result instanceof Error) {
-            reject(result);
-          }
+          await electrumClientSendRequest(client, 'blockchain.transaction.broadcast', txhex);
         } catch (err) {
           await client.unsubscribe('blockchain.transaction.subscribe', txhash);
           throw err;
         }
       } else {
-        const result = await client.request('blockchain.transaction.broadcast', txhex);
-        if (result instanceof Error) {
-          reject(result);
-        } else {
-          resolve({ txhash });
-        }
+        await electrumClientSendRequest(client, 'blockchain.transaction.broadcast', txhex);
+        resolve({ txhash });
       }
     } catch (err) {
       reject(err);

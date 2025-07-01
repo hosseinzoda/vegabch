@@ -497,7 +497,7 @@ class Moria0LoanManager {
           tx_result,
         });
       }
-      const payout_coins = result.payouts.map((utxo) => ({
+      const payout_coins: SpendableCoin[] = result.payouts.map((utxo) => ({
         type: SpendableCoinType.P2PKH,
         output: utxo.output,
         outpoint: utxo.outpoint,
@@ -593,7 +593,7 @@ class Moria0LoanManager {
         this.updateStateChangeInputCoins(update_state, [
           ...other_inputs,
           ...(reduce_result.payouts.map((utxo) => ({
-            type: SpendableCoinType.P2PKH,
+            type: SpendableCoinType.P2PKH as SpendableCoinType.P2PKH,
             output: utxo.output,
             outpoint: utxo.outpoint,
             key: wallet_addr_info.private_key as Uint8Array,
@@ -625,7 +625,7 @@ class Moria0LoanManager {
       this.updateStateChangeInputCoins(update_state, [
         ...other_inputs,
         ...(result.payouts.map((utxo) => ({
-          type: SpendableCoinType.P2PKH,
+          type: SpendableCoinType.P2PKH as SpendableCoinType.P2PKH,
           output: utxo.output,
           outpoint: utxo.outpoint,
           key: wallet_addr_info.private_key as Uint8Array,
@@ -699,7 +699,7 @@ class Moria0LoanManager {
       this.updateStateChangeInputCoins(update_state, [
         ...other_inputs,
         ...(result.payouts.map((utxo) => ({
-          type: SpendableCoinType.P2PKH,
+          type: SpendableCoinType.P2PKH as SpendableCoinType.P2PKH,
           output: utxo.output,
           outpoint: utxo.outpoint,
           key: wallet_addr_info.private_key as Uint8Array,
@@ -770,7 +770,7 @@ class Moria0LoanManager {
       this.updateStateChangeInputCoins(update_state, [
         ...other_inputs,
         ...(result.payouts.map((utxo) => ({
-          type: SpendableCoinType.P2PKH,
+          type: SpendableCoinType.P2PKH as SpendableCoinType.P2PKH,
           output: utxo.output,
           outpoint: utxo.outpoint,
           key: wallet_addr_info.private_key as Uint8Array,
@@ -835,7 +835,7 @@ class Moria0LoanManager {
         this.updateStateChangeInputCoins(update_state, [
           ...other_inputs,
           ...(result.payouts.map((utxo) => ({
-            type: SpendableCoinType.P2PKH,
+            type: SpendableCoinType.P2PKH as SpendableCoinType.P2PKH,
             output: utxo.output,
             outpoint: utxo.outpoint,
             key: wallet_addr_info.private_key as Uint8Array,
@@ -881,7 +881,7 @@ class Moria0LoanManager {
         this.updateStateChangeInputCoins(update_state, [
           ...other_inputs,
           ...(refi_result.payouts.map((utxo) => ({
-            type: SpendableCoinType.P2PKH,
+            type: SpendableCoinType.P2PKH as SpendableCoinType.P2PKH,
             output: utxo.output,
             outpoint: utxo.outpoint,
             key: wallet_addr_info.private_key as Uint8Array,

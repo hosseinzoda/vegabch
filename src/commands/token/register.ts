@@ -1,24 +1,24 @@
-import { Args } from '@oclif/core';
+import { Args, Flags } from '@oclif/core';
 import VegaCommand, { VegaCommandOptions } from '../../lib/vega-command.js';
 import type { TokensIdentity } from '../../lib/main/vega-file-storage-provider.js';
 import type { Registry, IdentitySnapshot } from '../../lib/schemas/bcmr-v2.schema.js';
+import { hexToBin, fetchBlobWithHttpRequest } from '../../lib/util.js';
+import { ValueError, InvalidProgramState } from '../../lib/exceptions.js';
+import type { FetchAuthChainBCMRResult, BCMROPReturnData } from '../../lib/main/token/types.js';
+import { simpleJsonSerializer, uint8ArrayEqual } from '@cashlab/common/util.js';
 
 export default class TokenList extends VegaCommand<typeof TokenList> {
   static args = {
-    authbase: Args.string({
-      name: 'authbase',
+    token_id: Args.string({
+      name: 'token_id',
       required: true,
       description: 'The authbase txid for the token.',
     }),
-    network: Args.string({
-      name: 'network',
-      required: true,
-      description: "Target network.",
-      options: ['mainnet', 'testnet', 'regtest'],
-      default: 'mainnet',
-    }),
   };
   static flags = {
+    'overwrite': Flags.boolean({
+      description: `When enabled it will overwrite the identity if it does already exists.`
+    }),
   };
   static vega_options: VegaCommandOptions = {
   };
@@ -30,33 +30,55 @@ export default class TokenList extends VegaCommand<typeof TokenList> {
   ];
 
   async run (): Promise<any> {
-    throw new Error('token:register has been disabled in the beta version');
-    /* TODO:: re-implement this command
-    await requireMainnet();
-    const authbase_arg = args.authbase
-    const chain: AuthChain = await BCMR.buildAuthChain({
-      transactionHash: authbase_arg,
-      network: args.network as Network,
-      resolveBase: false,
-      followToHead: true,
-    });
-    // use the head element
+    const { args, flags } = this;
+    const { sha256 } = await import('@cashlab/common/libauth.js');
+    const token_id = args.token_id;
+    const getHttpsUrl =  (urls: string[]): string | null => {
+      const https_url = urls.find((a) => a.startsWith('https://'));
+      if (https_url != null) {
+        return https_url;
+      }
+      const url_with_no_protocol = urls.find((a) => a.indexOf('://') == -1);
+      if (url_with_no_protocol != null) {
+        return 'https://' + url_with_no_protocol;
+      }
+      return null;
+    };
+    const authbase_txhash = hexToBin(token_id);
+    const result: FetchAuthChainBCMRResult = await this.callModuleMethod('token.fetch-bcmr-from-authchain-with-authbase', authbase_txhash);
+    const chain = result.chain.filter((a) => a.bcmr != null);
     if (chain.length == 0) {
-      throw new Error('The AuthChain has no elements!');
+      throw new ValueError(`No BCMR found!`);
     }
-    const head: AuthChainElement = chain[chain.length - 1] as AuthChainElement;
-    if (!head.httpsUrl || !head.contentHash) {
-      throw new Error('The authhead should contain an https url and content hash!');
+    const current_bcmr = chain[chain.length - 1]?.bcmr as BCMROPReturnData;
+    const content_https_url = getHttpsUrl(current_bcmr.urls);
+    if (content_https_url == null) {
+      throw new ValueError(`The bcmr has no https url!`);
     }
-    const output: any = { rows_affected: 0, registered_tokens: [] };
-    const registry = await BCMR.fetchMetadataRegistry(head.httpsUrl, head.contentHash);
+    const fetch_result = await fetchBlobWithHttpRequest({ url: content_https_url });
+    if (fetch_result.response.statusCode != 200) {
+      throw new Error(`Unexpected response from "${content_https_url}", status_code: ${fetch_result.response.statusCode}, response: ${Buffer.from(fetch_result.body.toString('utf8'))}`);
+    }
+    if (!uint8ArrayEqual(current_bcmr.content_hash, sha256.hash(fetch_result.body))) {
+      throw new ValueError(`The content of http response does not match with the authenticated data (content_hash).`);
+    }
+    const output: {
+      rows_affected: number;
+      registered_tokens: Array<{ key: string; date: Date; snapshot: IdentitySnapshot; }>;
+    } = { rows_affected: 0, registered_tokens: [] };
+    let registry: Registry;
+    try {
+      registry = JSON.parse(fetch_result.body.toString('utf8'));
+    } catch (err) {
+      throw new Error(`Expecting json from the response, Failed to parse: ${(err as any).message}, output: ${Buffer.from(fetch_result.body.toString('utf8'))}`);
+    }
     const current_date = new Date();
     const tokens_identity: TokensIdentity = await this.callModuleMethod('vega_storage.get_tokens_identity');
     // register tokens, requires that authbase to be equal category
     for (const [ authbase, history ] of Object.entries(registry.identities || {})) {
       for (const identity of Object.values(history)) {
-        if (identity.token && identity.token.category != authbase_arg) {
-          throw new Error(`The retrived identity has one or more defined token with its token.category not matching authbase, To register a token it's required to have the authbase match the token category`);
+        if (identity.token && identity.token.category != token_id) {
+          throw new Error(`The retrived identity has one or more category that do not match with the input token_id.`);
         }
       }
       const history_entries: Array<{ key: string, date: Date, snapshot: IdentitySnapshot }> = Object.keys(history).map((key) => ({ key, date: new Date(key), snapshot: history[key] as IdentitySnapshot }))
@@ -70,7 +92,10 @@ export default class TokenList extends VegaCommand<typeof TokenList> {
       if (!current_identity.token) {
         throw new Error('The current identity of the token has no token!');
       }
-      if (tokens_identity[current_identity.token.category] != null) {
+      if (current_identity.token.category != token_id) {
+        throw new Error(`The defined identity.token.category does not match the input token_id!`);
+      }
+      if (!flags.overwrite && tokens_identity[current_identity.token.category] != null) {
         throw new Error(`The token is already registered in the vega storage file.`);
       }
       tokens_identity[current_identity.token.category] = {
@@ -86,6 +111,5 @@ export default class TokenList extends VegaCommand<typeof TokenList> {
     }
 
     return output;
-    */
   }
 }

@@ -1,13 +1,20 @@
 import type { Registry, IdentityHistory, IdentitySnapshot } from './schemas/bcmr-v2.schema.js';
-import type { Fraction, TokenId, UTXO } from '@cashlab/common';
+import type { Fraction, TokenId, UTXO, TxResult, Outpoint } from '@cashlab/common';
+import { ValueError } from './exceptions.js';
 import { hexToBin, binToHex, convertFractionDenominator } from '@cashlab/common/util.js';
 import { NATIVE_BCH_TOKEN_ID } from '@cashlab/common/constants.js';
 import type { ExchangeLab, PoolV0Parameters, PoolV0, TradeResult, PoolTrade } from '@cashlab/cauldron';
 import type { TokensIdentity } from './main/vega-file-storage-provider.js';
+import type {
+  ElectrumClient, ElectrumClientEvents,
+  RPCParameter as ElectrumRPCParameter, RequestResponse as ElectrumRequestResponse,
+} from '@electrum-cash/network';
+import http from 'http';
+import https from 'https';
 
 export { hexToBin, binToHex } from '@cashlab/common/util.js';
 
-export const moriaTxResultSummaryJSON = (data: any): any => {
+export const cashlabTxResultSummaryJSON = (data: TxResult): any => {
   return {
     txbin: binToHex(data.txbin),
     txhash: binToHex(data.txhash),
@@ -356,6 +363,14 @@ export const tokensBalanceDetailFromUTXOList = (utxo_list: UTXO[]): TokenBalance
   return result;
 };
 
+export const readableTokenBalance = (token_id: TokenId, amount: bigint, bcmr_indexer: BCMRIndexer): { symbol: string, amount: string } => {
+  const token_identity = token_id != NATIVE_BCH_TOKEN_ID ? bcmr_indexer.getTokenCurrentIdentity(token_id) : null;
+  const token_info = token_id == NATIVE_BCH_TOKEN_ID  ? getNativeBCHTokenInfo() : token_identity?.token;
+  const symbol = token_info?.symbol ? token_info.symbol : token_id;
+  const decimals = token_info?.decimals != null && token_info?.decimals > 0 ? token_info.decimals : 0;
+  const amount_dec = bigIntToDecString(amount, decimals);
+  return { symbol, amount: amount_dec };
+};
 
 export const parsePoolFromRostrumNodeData  = (exlab: ExchangeLab, rn_pool: any): PoolV0 | null => {
   if (rn_pool.is_withdrawn) {
@@ -480,3 +495,142 @@ export const convertToJSONSerializable = (v: any): any => {
   }
   return v;
 }
+
+export const fractionAsReadableText = (a: Fraction, decimals: number): string => {
+  const dec_frac: Fraction = convertFractionDenominator(a, 10n ** BigInt(decimals));
+  return `${bigIntToDecString(dec_frac.numerator, decimals)}   (${a.numerator} / ${a.denominator})`;
+};
+
+export const parseFractionFromString = (a: string, unsigned: boolean): Fraction => {
+  const ia = a;
+  const slash_idx = a.indexOf('/');
+  if (slash_idx != -1) {
+    const parts = a.split('/');
+    const dot_idx = a.indexOf('.');
+    if (dot_idx != -1 || parts.length != 2) {
+      throw new ValueError(`Expecting a fraction with two integers, got: ${ia}`);
+    }
+    const pttrn = /^\s*(\-?[0-9]+)\s*$/;
+    const parts_match: any = parts.map((a) => a.match(pttrn));
+    if (parts_match[0] == null) {
+      throw new ValueError(`The numerator of a fraction should be an integer, got: ${ia}`);
+    }
+    if (parts_match[1] == null) {
+      throw new ValueError(`The denominator of a fraction should be an integer, got: ${ia}`);
+    }
+    if (parts_match.filter((a: any) => a[1][0] == '-').length > 0) {
+      if (unsigned) {
+        throw new ValueError(`The value should be a non-negative fraction, got: ${ia}`);
+      }
+    }
+    if (BigInt(parts_match[1][1]) == 0n) {
+      throw new ValueError(`Fraction denominator should not be zero!`)
+    }
+    return {
+      numerator: BigInt(parts_match[0][1]),
+      denominator: BigInt(parts_match[1][1]),
+    };
+  } else {
+    a = a.trim();
+    const sign = a[0] == '-';
+    if (sign) {
+      if (unsigned) {
+        throw new ValueError(`should be a non-negative fraction, got: ${ia}`);
+      }
+      a = a.slice(1);
+    }
+    const parts = a.split('.');
+    if (parts.length > 2) {
+      throw new ValueError(`A fraction represented as a decimal number should not contain more than one dot (.) , value: ${ia}`);
+    }
+    const pttrn = /^[0-9]+$/;
+    const parts_match = parts.map((a) => a.match(pttrn));
+    if (parts_match.filter((a) => !a).length > 0) {
+      throw new ValueError(`Invalid value, Expecting a fraction, got: ${ia}`);
+    }
+    let decimals;
+    let i, d;
+    if (parts.length == 2) {
+      i = BigInt(parts[0] as string);
+      d = BigInt(parts[1] as string);
+      decimals = BigInt((parts[1] as string).length);;
+    } else {
+      i = BigInt(parts[0] as string);
+      d = 0n;
+      decimals = 0n;
+    }
+    return {
+      numerator: i * (10n ** decimals) + d,
+      denominator: 10n ** decimals,
+    };
+  }
+};
+
+
+export function parseOutpointFromInputArgument (arg: string, name: string): Outpoint {
+  const [ outpoint_txid, outpoint_index ] = arg.split(':');
+  if (typeof outpoint_index != 'string' || isNaN(parseInt(outpoint_index)) && parseInt(outpoint_index) > 0) {
+    throw new ValueError(`${name} index is not a positive number!`);
+  }
+  const outpoint_txhash = hexToBin(outpoint_txid as string);
+  if (outpoint_txhash.length != 32) {
+    throw new ValueError(`${name} txhash should be a 32 bytes represented in hexstring!`);
+  }
+  return { txhash: outpoint_txhash, index: parseInt(outpoint_index) };
+}
+
+export async function electrumClientSendRequest (client: ElectrumClient<ElectrumClientEvents>, method: string, ...args: ElectrumRPCParameter[]): Promise<ElectrumRequestResponse> {
+  const output = await client.request(method, ...args);
+  if (output instanceof Error) {
+    throw output;
+  }
+  return output;
+}
+
+export function fetchBlobWithHttpRequest ({ url, agents, headers }: {
+  url: string;
+  agents?: { http: http.Agent, https: https.Agent },
+  headers?: { [name: string]: string };
+}): Promise<{ body: any, response: http.IncomingMessage }> {
+  return new Promise((resolve, reject) => {
+    try {
+      const is_https = url.toLowerCase().startsWith('https://');
+      const req = (is_https ? https : http).request(url, {
+        agent: agents != null ? (is_https ? agents.https : agents.http) : undefined,
+        method: 'GET',
+        headers,
+      }, (resp) => {
+        const MAX_RESPONSE_SIZE = 1024 * 1024 * 2; // 2MB
+        let post_size = 0;
+        let chunks: Buffer[] = [];
+        resp.on('data', (chunk) => {
+          if (post_size > MAX_RESPONSE_SIZE) {
+            reject(new Error('Response body is too big!'));
+            resp.destroy();
+            chunks = [];
+            return;
+          }
+          chunks.push(chunk);
+          post_size += chunk.length;
+        });
+        resp.on('end', () => {
+          try {
+            resolve({ body: Buffer.concat(chunks), response: resp });
+          } catch (err) {
+            reject(new Error('Failed to parse the response body, content: ' + Buffer.concat(chunks).toString()));
+          }
+        });
+      });
+      req.on('error', (error) => {
+        reject(error);
+      });
+      req.end();
+    } catch (err) {
+      console.error("ERRR", err);
+      reject(err);
+    }
+  });
+}
+
+
+

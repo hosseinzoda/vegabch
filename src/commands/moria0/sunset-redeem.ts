@@ -2,7 +2,7 @@ import { Args, Flags } from '@oclif/core';
 import VegaCommand, { VegaCommandOptions, selectWalletFlags } from '../../lib/vega-command.js';
 import {
   getNativeBCHTokenInfo, bigIntToDecString, binToHex, bigIntFromDecString,
-  moriaTxResultSummaryJSON, convertUTXOToJSON,
+  cashlabTxResultSummaryJSON, convertUTXOToJSON, parseOutpointFromInputArgument,
 } from '../../lib/util.js';
 import { ValueError } from '../../lib/exceptions.js';
 import { MUSDV0_SYMBOL, MUSDV0_DECIMALS } from '../../lib/constants.js';
@@ -50,18 +50,7 @@ export default class Moria0SunsetRedeem extends VegaCommand<typeof Moria0SunsetR
     const wallet_name = this.getSelectedWalletName();
     const { default: MoriaV0 } = await import('@cashlab/moria/v0/index.js');
     const loans: UTXOWithNFT[] = await this.callModuleMethod('moria0.get-loans');
-    let selected_loan_outpoint;
-    {
-      const [ outpoint_txid, outpoint_index ] = args.loan_outpoint.split(':');
-      if (typeof outpoint_index != 'string' || isNaN(parseInt(outpoint_index)) && parseInt(outpoint_index) > 0) {
-        throw new ValueError(`loan_outpoint index is not a positive number!`);
-      }
-      const outpoint_txhash = hexToBin(outpoint_txid as string);
-      if (outpoint_txhash.length != 32) {
-        throw new ValueError(`loan_outpoint txhash should be a 32 bytes represented in hexstring!`);
-      }
-      selected_loan_outpoint = { txhash: outpoint_txhash, index: parseInt(outpoint_index) };
-    }
+    const selected_loan_outpoint = parseOutpointFromInputArgument(args.loan_outpoint, 'loan_outpoint');
     const selected_loan: UTXOWithNFT | undefined = loans.find((a) => uint8ArrayEqual(a.outpoint.txhash, selected_loan_outpoint.txhash) && a.outpoint.index == selected_loan_outpoint.index);
     if (selected_loan == null) {
       throw new ValueError(`Provided loan_outpoint not found in the wallet's loans.`);
@@ -87,7 +76,7 @@ export default class Moria0SunsetRedeem extends VegaCommand<typeof Moria0SunsetR
       this.log(`  Parse error: [${(err as any).name}] ${(err as any).message}`);
     }
     return {
-      ...moriaTxResultSummaryJSON(result),
+      ...cashlabTxResultSummaryJSON(result),
       oracle_use_fee: result.oracle_use_fee+'',
       redeemer_payouts: result.redeemer_payouts.map(convertUTXOToJSON),
       borrower_payouts: result.borrower_payouts.map(convertUTXOToJSON),

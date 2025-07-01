@@ -1,9 +1,9 @@
 import { Args } from '@oclif/core';
 import VegaCommand, { VegaCommandOptions } from '../../lib/vega-command.js';
-import { bigIntToDecString } from '../../lib/util.js';
+import { bigIntToDecString, fractionAsReadableText } from '../../lib/util.js';
 import { MUSDV0_SYMBOL, MUSDV0_DECIMALS } from '../../lib/constants.js';
 import type { Moria0LoanManagerSettings } from '../../lib/main/moria0_manager/types.js';
-import { fractionAsReadableText, deserializeSettings } from '../../lib/main/moria0_manager/helpers.js';
+import { deserializeSettings } from '../../lib/main/moria0_manager/helpers.js';
 
 export default class Moria0ManagerPrintSettings extends VegaCommand<typeof Moria0ManagerPrintSettings> {
   static args = {

@@ -8,7 +8,7 @@ import { MUSDV0_SYMBOL, MUSDV0_DECIMALS, MUSDV0_TOKEN_ID } from '../../lib/const
 import { binToHex } from '@cashlab/common/util.js';
 import { NATIVE_BCH_TOKEN_ID } from '@cashlab/common/constants.js';
 import type { Moria0LoanManagerStatus } from '../../lib/main/moria0_manager/types.js';
-import { fractionAsReadableText } from '../../lib/main/moria0_manager/helpers.js';
+import { fractionAsReadableText } from '../../lib/util.js';
 
 export default class Moria0ManagerStatus extends VegaCommand<typeof Moria0ManagerStatus> {
   static args = {

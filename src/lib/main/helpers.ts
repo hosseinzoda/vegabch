@@ -14,19 +14,22 @@ export const initModuleMethodWrapper = () => {
     defineServices: (_services: any) => {
       services = _services;
     },
+    getServices: (): any => {
+      return services;
+    },
     add: (name: string, method: ModuleMethod) => {
       methods[name] = (...args): any => method.call(null, services, ...args);
     },
   };
 };
 
-export const selectInputCoins = (input_coins: SpendableCoin[], requirements: Array<{ token_id: TokenId, amount: bigint, min_amount_per_utxo?: bigint, min_token_amount_per_utxo?: bigint }>, { allow_nft, select_pure_bch }: { allow_nft?: boolean, select_pure_bch?: boolean  }): SpendableCoin[] => {
+export const selectInputCoins = (input_coins: SpendableCoin[], requirements: Array<{ token_id: TokenId, amount: bigint, min_amount_per_utxo?: bigint, min_token_amount_per_utxo?: bigint }>, { allow_nft, select_pure_bch, include_tokens }: { allow_nft?: boolean, select_pure_bch?: boolean, include_tokens?: TokenId[] }): SpendableCoin[] => {
   input_coins = allow_nft ? input_coins : input_coins.filter((a) => a.output.token?.nft?.commitment == null);
   const output: SpendableCoin[] = [];
   requirements = structuredClone(requirements);
   const bch_requirement: { token_id: TokenId, amount: bigint } | undefined = requirements.find((a) => a.token_id == NATIVE_BCH_TOKEN_ID);
   for (const requirement of requirements) {
-    let sub_input_coins = input_coins.filter((a) => output.indexOf(a) == -1);
+    let sub_input_coins = input_coins.filter((a) => output.indexOf(a) == -1 && (include_tokens != null ? a.output.token == null || include_tokens.indexOf(a.output.token.token_id) != -1 : true));
     if (requirement.token_id == NATIVE_BCH_TOKEN_ID) {
       sub_input_coins = [
         // first-in-line coins without tokens

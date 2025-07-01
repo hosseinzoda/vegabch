@@ -1,7 +1,7 @@
 import type { NotificationHook, Moria0LoanManagerSettings, MoriaV0ManagerStorageData } from './types.js';
 import { convertFractionDenominator, Fraction } from '@cashlab/common';
 import { ValueError } from '../../exceptions.js';
-import { bigIntToDecString } from '../../util.js';
+import { bigIntToDecString, parseFractionFromString } from '../../util.js';
 
 export const loanManagerSettingsFromStorageData = (settings_data: any, storage_data: MoriaV0ManagerStorageData): Moria0LoanManagerSettings => {
   settings_data = structuredClone(settings_data);
@@ -245,72 +245,5 @@ export const validateNotificationHookData = (a: NotificationHook): void => {
     }
   } else {
     throw new ValueError(`Unknown notification type: ${(a as any)?.type}`);
-  }
-};
-
-export const fractionAsReadableText = (a: Fraction, decimals: number): string => {
-  const dec_frac: Fraction = convertFractionDenominator(a, 10n ** BigInt(decimals));
-  return `${bigIntToDecString(dec_frac.numerator, decimals)}   (${a.numerator} / ${a.denominator})`;
-};
-
-export const parseFractionFromString = (a: string, unsigned: boolean): Fraction => {
-  const ia = a;
-  const slash_idx = a.indexOf('/');
-  if (slash_idx != -1) {
-    const parts = a.split('/');
-    const dot_idx = a.indexOf('.');
-    if (dot_idx != -1 || parts.length != 2) {
-      throw new ValueError(`Expecting a fraction with two integers, got: ${ia}`);
-    }
-    const pttrn = /^\s*(\-?[0-9]+)\s*$/;
-    const parts_match: any = parts.map((a) => a.match(pttrn));
-    if (parts_match[0] == null) {
-      throw new ValueError(`The numerator of a fraction should be an integer, got: ${ia}`);
-    }
-    if (parts_match[1] == null) {
-      throw new ValueError(`The denominator of a fraction should be an integer, got: ${ia}`);
-    }
-    if (parts_match.filter((a: any) => a[1][0] == '-').length > 0) {
-      if (unsigned) {
-        throw new ValueError(`The value should be a non-negative fraction, got: ${ia}`);
-      }
-    }
-    return {
-      numerator: BigInt(parts_match[0][1]),
-      denominator: BigInt(parts_match[1][1]),
-    };
-  } else {
-    a = a.trim();
-    const sign = a[0] == '-';
-    if (sign) {
-      if (unsigned) {
-        throw new ValueError(`should be a non-negative fraction, got: ${ia}`);
-      }
-      a = a.slice(1);
-    }
-    const parts = a.split('.');
-    if (parts.length > 2) {
-      throw new ValueError(`A fraction represented as a decimal number should not contain more than one dot (.) , value: ${ia}`);
-    }
-    const pttrn = /^[0-9]+$/;
-    const parts_match = parts.map((a) => a.match(pttrn));
-    if (parts_match.filter((a) => !a).length > 0) {
-      throw new ValueError(`Invalid value, Expecting a fraction, got: ${ia}`);
-    }
-    let decimals;
-    let i, d;
-    if (parts.length == 2) {
-      i = BigInt(parts[0] as string);
-      d = BigInt(parts[1] as string);
-      decimals = BigInt((parts[1] as string).length);;
-    } else {
-      i = BigInt(parts[0] as string);
-      d = 0n;
-      decimals = 0n;
-    }
-    return {
-      numerator: i * (10n ** decimals) + d,
-      denominator: 10n ** decimals,
-    };
   }
 };
