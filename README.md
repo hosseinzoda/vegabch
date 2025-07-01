@@ -20,7 +20,7 @@ $ npm install -g vegabch
 $ vegabch COMMAND
 running command...
 $ vegabch (--version)
-vegabch/0.1.3-beta.1 linux-x64 node-v22.14.0
+vegabch/0.2.0 linux-x64 node-v22.14.0
 $ vegabch --help [COMMAND]
 USAGE
   $ vegabch COMMAND
@@ -124,7 +124,7 @@ EXAMPLES
   $ vegabch daemon:gen-rpcauth <username> --password <pre-defined-password>
 ```
 
-_See code: [src/commands/daemon/gen-rpcauth.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/daemon/gen-rpcauth.ts)_
+_See code: [src/commands/daemon/gen-rpcauth.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/daemon/gen-rpcauth.ts)_
 
 ## `vegabch daemon:run`
 
@@ -143,7 +143,7 @@ EXAMPLES
   $ vegabch daemon:run
 ```
 
-_See code: [src/commands/daemon/run.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/daemon/run.ts)_
+_See code: [src/commands/daemon/run.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/daemon/run.ts)_
 
 ## `vegabch help [COMMAND]`
 
@@ -194,7 +194,7 @@ FLAG DESCRIPTIONS
     The name of wallet to use when it performs the command.
 ```
 
-_See code: [src/commands/wallet/balance.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/wallet/balance.ts)_
+_See code: [src/commands/wallet/balance.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/wallet/balance.ts)_
 
 ## `vegabch wallet:bch-deposit-address`
 
@@ -224,7 +224,7 @@ FLAG DESCRIPTIONS
     The name of wallet to use when it performs the command.
 ```
 
-_See code: [src/commands/wallet/bch-deposit-address.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/wallet/bch-deposit-address.ts)_
+_See code: [src/commands/wallet/bch-deposit-address.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/wallet/bch-deposit-address.ts)_
 
 ## `vegabch wallet:create NAME TYPE NETWORK`
 
@@ -260,7 +260,7 @@ EXAMPLES
   $ vegabch wallet:create mywallet wif --secret '<the wif secret>'
 ```
 
-_See code: [src/commands/wallet/create.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/wallet/create.ts)_
+_See code: [src/commands/wallet/create.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/wallet/create.ts)_
 
 ## `vegabch wallet:generate NAME TYPE NETWORK`
 
@@ -291,7 +291,7 @@ EXAMPLES
   $ vegabch wallet:generate mywallet wif testnet
 ```
 
-_See code: [src/commands/wallet/generate.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/wallet/generate.ts)_
+_See code: [src/commands/wallet/generate.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/wallet/generate.ts)_
 
 ## `vegabch wallet:list`
 
@@ -315,7 +315,7 @@ EXAMPLES
   $ vegabch wallet:list
 ```
 
-_See code: [src/commands/wallet/list.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/wallet/list.ts)_
+_See code: [src/commands/wallet/list.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/wallet/list.ts)_
 
 ## `vegabch wallet:pin NAME`
 
@@ -342,7 +342,7 @@ EXAMPLES
   $ vegabch wallet:pin mywallet
 ```
 
-_See code: [src/commands/wallet/pin.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/wallet/pin.ts)_
+_See code: [src/commands/wallet/pin.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/wallet/pin.ts)_
 
 ## `vegabch wallet:token-deposit-address`
 
@@ -372,7 +372,7 @@ FLAG DESCRIPTIONS
     The name of wallet to use when it performs the command.
 ```
 
-_See code: [src/commands/wallet/token-deposit-address.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/wallet/token-deposit-address.ts)_
+_See code: [src/commands/wallet/token-deposit-address.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/wallet/token-deposit-address.ts)_
 
 ## `vegabch wallet:unpin`
 
@@ -396,7 +396,7 @@ EXAMPLES
   $ vegabch wallet:unpin
 ```
 
-_See code: [src/commands/wallet/unpin.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/wallet/unpin.ts)_
+_See code: [src/commands/wallet/unpin.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/wallet/unpin.ts)_
 
 
 
@@ -439,7 +439,7 @@ EXAMPLES
   $ vegabch cauldron:construct-trade
 ```
 
-_See code: [src/commands/cauldron/construct-trade.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/cauldron/construct-trade.ts)_
+_See code: [src/commands/cauldron/construct-trade.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/cauldron/construct-trade.ts)_
 
 ## `vegabch cauldron:fund-trade TRADE_FILE`
 
@@ -485,7 +485,7 @@ FLAG DESCRIPTIONS
     The name of wallet to use when it performs the command.
 ```
 
-_See code: [src/commands/cauldron/fund-trade.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/cauldron/fund-trade.ts)_
+_See code: [src/commands/cauldron/fund-trade.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/cauldron/fund-trade.ts)_
 
 
 
@@ -520,7 +520,7 @@ FLAG DESCRIPTIONS
     The name of wallet to use when it performs the command.
 ```
 
-_See code: [src/commands/moria0/add-collateral.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria0/add-collateral.ts)_
+_See code: [src/commands/moria0/add-collateral.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria0/add-collateral.ts)_
 
 ## `vegabch moria0:get-loans`
 
@@ -539,7 +539,7 @@ EXAMPLES
   $ vegabch moria0:get-loans
 ```
 
-_See code: [src/commands/moria0/get-loans.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria0/get-loans.ts)_
+_See code: [src/commands/moria0/get-loans.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria0/get-loans.ts)_
 
 ## `vegabch moria0:get-my-loans`
 
@@ -564,7 +564,7 @@ FLAG DESCRIPTIONS
     The name of wallet to use when it performs the command.
 ```
 
-_See code: [src/commands/moria0/get-my-loans.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria0/get-my-loans.ts)_
+_See code: [src/commands/moria0/get-my-loans.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria0/get-my-loans.ts)_
 
 ## `vegabch moria0:liquidate-loan LOAN_OUTPOINT`
 
@@ -595,7 +595,7 @@ FLAG DESCRIPTIONS
     The name of wallet to use when it performs the command.
 ```
 
-_See code: [src/commands/moria0/liquidate-loan.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria0/liquidate-loan.ts)_
+_See code: [src/commands/moria0/liquidate-loan.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria0/liquidate-loan.ts)_
 
 ## `vegabch moria0:mint-loan LOAN_AMOUNT COLLATERAL_AMOUNT`
 
@@ -628,7 +628,7 @@ FLAG DESCRIPTIONS
     The name of wallet to use when it performs the command.
 ```
 
-_See code: [src/commands/moria0/mint-loan.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria0/mint-loan.ts)_
+_See code: [src/commands/moria0/mint-loan.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria0/mint-loan.ts)_
 
 ## `vegabch moria0:reduce-loan LOAN_OUTPOINT NEXT_COLLATERAL_PERCENTAGE`
 
@@ -661,7 +661,7 @@ FLAG DESCRIPTIONS
     The name of wallet to use when it performs the command.
 ```
 
-_See code: [src/commands/moria0/reduce-loan.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria0/reduce-loan.ts)_
+_See code: [src/commands/moria0/reduce-loan.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria0/reduce-loan.ts)_
 
 ## `vegabch moria0:repay-loan LOAN_OUTPOINT`
 
@@ -692,7 +692,7 @@ FLAG DESCRIPTIONS
     The name of wallet to use when it performs the command.
 ```
 
-_See code: [src/commands/moria0/repay-loan.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria0/repay-loan.ts)_
+_See code: [src/commands/moria0/repay-loan.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria0/repay-loan.ts)_
 
 ## `vegabch moria0:sunset-redeem LOAN_OUTPOINT SUNSET_DATASIG`
 
@@ -724,7 +724,7 @@ FLAG DESCRIPTIONS
     The name of wallet to use when it performs the command.
 ```
 
-_See code: [src/commands/moria0/sunset-redeem.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria0/sunset-redeem.ts)_
+_See code: [src/commands/moria0/sunset-redeem.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria0/sunset-redeem.ts)_
 
 
 
@@ -749,7 +749,7 @@ EXAMPLES
   $ vegabch moria0-manager:enable <wallet_name>
 ```
 
-_See code: [src/commands/moria0-manager/enable.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria0-manager/enable.ts)_
+_See code: [src/commands/moria0-manager/enable.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria0-manager/enable.ts)_
 
 ## `vegabch moria0-manager:disable WALLET_NAME`
 
@@ -771,7 +771,7 @@ EXAMPLES
   $ vegabch moria0-manager:disable <wallet_name>
 ```
 
-_See code: [src/commands/moria0-manager/disable.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria0-manager/disable.ts)_
+_See code: [src/commands/moria0-manager/disable.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria0-manager/disable.ts)_
 
 ## `vegabch moria0-manager:print-settings WALLET_NAME`
 
@@ -793,7 +793,7 @@ EXAMPLES
   $ vegabch moria0-manager:print-settings <wallet_name>
 ```
 
-_See code: [src/commands/moria0-manager/print-settings.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria0-manager/print-settings.ts)_
+_See code: [src/commands/moria0-manager/print-settings.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria0-manager/print-settings.ts)_
 
 ## `vegabch moria0-manager:print-notification-hook HOOK_NAME`
 
@@ -815,7 +815,7 @@ EXAMPLES
   $ vegabch moria0-manager:print-notification-hook <hook_name> ....
 ```
 
-_See code: [src/commands/moria0-manager/print-notification-hook.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria0-manager/print-notification-hook.ts)_
+_See code: [src/commands/moria0-manager/print-notification-hook.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria0-manager/print-notification-hook.ts)_
 
 ## `vegabch moria0-manager:delete-notification-hook HOOK_NAME`
 
@@ -837,7 +837,7 @@ EXAMPLES
   $ vegabch moria0-manager:delete-notification-hook <hook_name> ....
 ```
 
-_See code: [src/commands/moria0-manager/delete-notification-hook.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria0-manager/delete-notification-hook.ts)_
+_See code: [src/commands/moria0-manager/delete-notification-hook.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria0-manager/delete-notification-hook.ts)_
 
 
 ## `vegabch moria0-manager:set-email-notification-hook HOOK_NAME`
@@ -874,7 +874,7 @@ EXAMPLES
   $ vegabch moria0-manager:set-email-notification-hook <hook_name> ....
 ```
 
-_See code: [src/commands/moria0-manager/set-email-notification-hook.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria0-manager/set-email-notification-hook.ts)_
+_See code: [src/commands/moria0-manager/set-email-notification-hook.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria0-manager/set-email-notification-hook.ts)_
 
 ## `vegabch moria0-manager:set-web-notification-hook HOOK_NAME`
 
@@ -905,7 +905,7 @@ EXAMPLES
   $ vegabch moria0-manager:set-web-notification-hook <hook_name> ....
 ```
 
-_See code: [src/commands/moria0-manager/set-web-notification-hook.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria0-manager/set-web-notification-hook.ts)_
+_See code: [src/commands/moria0-manager/set-web-notification-hook.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria0-manager/set-web-notification-hook.ts)_
 
 ## `vegabch moria0-manager:setup WALLET_NAME`
 
@@ -955,7 +955,7 @@ EXAMPLES
   $ vegabch moria0-manager:setup <wallet_name> ....
 ```
 
-_See code: [src/commands/moria0-manager/setup.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria0-manager/setup.ts)_
+_See code: [src/commands/moria0-manager/setup.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria0-manager/setup.ts)_
 
 ## `vegabch moria0-manager:status WALLET_NAME`
 
@@ -977,7 +977,7 @@ EXAMPLES
   $ vegabch moria0-manager:status <wallet_name>
 ```
 
-_See code: [src/commands/moria0-manager/status.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria0-manager/status.ts)_
+_See code: [src/commands/moria0-manager/status.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria0-manager/status.ts)_
 
 ## `vegabch moria0-manager:trigger-test-notification WALLET_NAME NOTIFICATION_NAME`
 
@@ -1000,7 +1000,7 @@ EXAMPLES
   $ vegabch moria0-manager:trigger-test-notification <wallet_name> <notification_name>
 ```
 
-_See code: [src/commands/moria0-manager/trigger-test-notification.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria0-manager/trigger-test-notification.ts)_
+_See code: [src/commands/moria0-manager/trigger-test-notification.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria0-manager/trigger-test-notification.ts)_
 
 
 
@@ -1039,7 +1039,7 @@ FLAG DESCRIPTIONS
     The name of wallet to use when it performs the command.
 ```
 
-_See code: [src/commands/moria1/add-collateral.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria1/add-collateral.ts)_
+_See code: [src/commands/moria1/add-collateral.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria1/add-collateral.ts)_
 
 ## `vegabch moria1:get-loans`
 
@@ -1065,7 +1065,7 @@ EXAMPLES
   $ vegabch moria1:get-loans
 ```
 
-_See code: [src/commands/moria1/get-loans.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria1/get-loans.ts)_
+_See code: [src/commands/moria1/get-loans.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria1/get-loans.ts)_
 
 ## `vegabch moria1:liquidate-loan LOAN_OUTPOINT`
 
@@ -1096,7 +1096,7 @@ FLAG DESCRIPTIONS
     The name of wallet to use when it performs the command.
 ```
 
-_See code: [src/commands/moria1/liquidate-loan.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria1/liquidate-loan.ts)_
+_See code: [src/commands/moria1/liquidate-loan.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria1/liquidate-loan.ts)_
 
 ## `vegabch moria1:mint-loan LOAN_AMOUNT COLLATERAL_AMOUNT ANNUAL_INTEREST_RATE`
 
@@ -1131,7 +1131,7 @@ FLAG DESCRIPTIONS
     The name of wallet to use when it performs the command.
 ```
 
-_See code: [src/commands/moria1/mint-loan.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria1/mint-loan.ts)_
+_See code: [src/commands/moria1/mint-loan.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria1/mint-loan.ts)_
 
 ## `vegabch moria1:print-wallet-settings WALLET_NAME`
 
@@ -1153,7 +1153,7 @@ EXAMPLES
   $ vegabch moria1:print-wallet-settings <wallet_name>
 ```
 
-_See code: [src/commands/moria1/print-wallet-settings.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria1/print-wallet-settings.ts)_
+_See code: [src/commands/moria1/print-wallet-settings.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria1/print-wallet-settings.ts)_
 
 ## `vegabch moria1:redeem-loan LOAN_OUTPOINT`
 
@@ -1185,7 +1185,7 @@ FLAG DESCRIPTIONS
     The name of wallet to use when it performs the command.
 ```
 
-_See code: [src/commands/moria1/redeem-loan.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria1/redeem-loan.ts)_
+_See code: [src/commands/moria1/redeem-loan.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria1/redeem-loan.ts)_
 
 ## `vegabch moria1:refi-loan INPUT_LOAN_OUTPOINT LOAN_AMOUNT COLLATERAL_AMOUNT ANNUAL_INTEREST_RATE`
 
@@ -1221,7 +1221,7 @@ FLAG DESCRIPTIONS
     The name of wallet to use when it performs the command.
 ```
 
-_See code: [src/commands/moria1/refi-loan.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria1/refi-loan.ts)_
+_See code: [src/commands/moria1/refi-loan.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria1/refi-loan.ts)_
 
 ## `vegabch moria1:repay-loan LOAN_OUTPOINT`
 
@@ -1252,7 +1252,7 @@ FLAG DESCRIPTIONS
     The name of wallet to use when it performs the command.
 ```
 
-_See code: [src/commands/moria1/repay-loan.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria1/repay-loan.ts)_
+_See code: [src/commands/moria1/repay-loan.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria1/repay-loan.ts)_
 
 ## `vegabch moria1:set-wallet-settings WALLET_NAME`
 
@@ -1286,7 +1286,7 @@ EXAMPLES
   $ vegabch moria1:set-wallet-settings <wallet_name>
 ```
 
-_See code: [src/commands/moria1/set-wallet-settings.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria1/set-wallet-settings.ts)_
+_See code: [src/commands/moria1/set-wallet-settings.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria1/set-wallet-settings.ts)_
 
 ## `vegabch moria1:status`
 
@@ -1305,7 +1305,7 @@ EXAMPLES
   $ vegabch moria1:status
 ```
 
-_See code: [src/commands/moria1/status.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria1/status.ts)_
+_See code: [src/commands/moria1/status.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria1/status.ts)_
 
 ## `vegabch moria1:wallet-withdraw-from-agent-p2nfth AGENT_NFTHASH`
 
@@ -1336,7 +1336,7 @@ FLAG DESCRIPTIONS
     The name of wallet to use when it performs the command.
 ```
 
-_See code: [src/commands/moria1/wallet-withdraw-from-agent-p2nfth.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/moria1/wallet-withdraw-from-agent-p2nfth.ts)_
+_See code: [src/commands/moria1/wallet-withdraw-from-agent-p2nfth.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/moria1/wallet-withdraw-from-agent-p2nfth.ts)_
 
 
 
@@ -1371,7 +1371,7 @@ EXAMPLES
   $ vegabch network:broadcast-transaction
 ```
 
-_See code: [src/commands/network/broadcast-transaction.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/network/broadcast-transaction.ts)_
+_See code: [src/commands/network/broadcast-transaction.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/network/broadcast-transaction.ts)_
 
 ## `vegabch settings:delete NAME`
 
@@ -1398,7 +1398,7 @@ EXAMPLES
   $ vegabch settings:delete <name>
 ```
 
-_See code: [src/commands/settings/delete.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/settings/delete.ts)_
+_See code: [src/commands/settings/delete.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/settings/delete.ts)_
 
 ## `vegabch settings:get NAME`
 
@@ -1425,7 +1425,7 @@ EXAMPLES
   $ vegabch settings:get <name>
 ```
 
-_See code: [src/commands/settings/get.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/settings/get.ts)_
+_See code: [src/commands/settings/get.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/settings/get.ts)_
 
 ## `vegabch settings:list`
 
@@ -1449,7 +1449,7 @@ EXAMPLES
   $ vegabch settings:list
 ```
 
-_See code: [src/commands/settings/list.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/settings/list.ts)_
+_See code: [src/commands/settings/list.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/settings/list.ts)_
 
 ## `vegabch settings:set NAME VALUE`
 
@@ -1477,7 +1477,7 @@ EXAMPLES
   $ vegabch settings:set <name> <value>
 ```
 
-_See code: [src/commands/settings/set.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/settings/set.ts)_
+_See code: [src/commands/settings/set.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/settings/set.ts)_
 
 ## `vegabch token:list`
 
@@ -1501,7 +1501,7 @@ EXAMPLES
   $ vegabch token:list
 ```
 
-_See code: [src/commands/token/list.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/token/list.ts)_
+_See code: [src/commands/token/list.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/token/list.ts)_
 
 ## `vegabch token:register TOKEN_ID`
 
@@ -1529,6 +1529,6 @@ EXAMPLES
   $ vegabch token:register <authbase>
 ```
 
-_See code: [src/commands/token/register.ts](https://github.com/hosseinzoda/vegabch/blob/v0.1.3-beta.1/src/commands/token/register.ts)_
+_See code: [src/commands/token/register.ts](https://github.com/hosseinzoda/vegabch/blob/main/src/commands/token/register.ts)_
 
 <!-- commandsstop -->
