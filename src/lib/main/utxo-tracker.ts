@@ -176,6 +176,7 @@ export default class UTXOTracker extends EventEmitter implements Service {
         entry.data = result.map(parseElectrumUTXO);
         this.emit('update', entry);
       } catch (err) {
+        this._console.warn(`UTXOTracker initEntry fail, cashaddr: ${entry.cashaddr}, error: `, err);
         if (entry.pending_request != pending_promise) {
           await entry.pending_request;
           return; // exit
