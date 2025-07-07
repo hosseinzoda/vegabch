@@ -31,7 +31,7 @@ export default class CreateWallet extends VegaCommand<typeof CreateWallet> {
     'derivation-path': Flags.string({
       char: 'p',
       helpLabel: '--derivation-path',
-      description: "Wallet's mnemonic words, hd wallet's private key represented as mnemonic words.",
+      description: "The derivation path for the hd wallet. default = m/44'/0'/0'",
     }),
     secret: Flags.string({
       char: 's',
@@ -73,7 +73,7 @@ export default class CreateWallet extends VegaCommand<typeof CreateWallet> {
         this.exit(1)
       }
       params.seed_phrase = flags.mnemonic;
-      params.derivation_path = flags['derivation-path'];
+      params.derivation_path = (flags['derivation-path']||"m/44'/0'/0'") + '/0/0'; // zeroth address
     } else  if (wallet_type == 'wif') {
       if (flags.mnemonic || flags['derivation-path']) {
         this.error('Use of --mnemonic & --derivation-path is not accepted on creation of wif wallet.')

@@ -1,4 +1,4 @@
-import { Args } from '@oclif/core';
+import { Args, Flags } from '@oclif/core';
 import VegaCommand, { VegaCommandOptions } from '../../lib/vega-command.js';
 
 export default class GenerateWallet extends VegaCommand<typeof GenerateWallet> {
@@ -23,6 +23,11 @@ export default class GenerateWallet extends VegaCommand<typeof GenerateWallet> {
     }),
   };
   static flags = {
+    'derivation-path': Flags.string({
+      char: 'p',
+      helpLabel: '--derivation-path',
+      description: "The derivation path for the hd wallet. default = m/44'/0'/0'",
+    }),
   };
   static vega_options: VegaCommandOptions = {
   };
@@ -35,7 +40,7 @@ export default class GenerateWallet extends VegaCommand<typeof GenerateWallet> {
   ];
 
   async run (): Promise<any> {
-    const { args } = this;
+    const { args, flags } = this;
     const wallet_name = args.name;
     const wallet_type = args.type == 'seed' ? 'single-address-seed' : 'wif';
     const network = args.network;
@@ -44,7 +49,11 @@ export default class GenerateWallet extends VegaCommand<typeof GenerateWallet> {
       this.error('A wallet with the following name already exists: ' + wallet_name);
       this.exit(1);
     }
-    await this.callModuleMethod('wallet.generate', wallet_name, wallet_type, network, {});
+    const params: { derivation_path?: string  } = {};
+    if (wallet_type == 'single-address-seed') {
+      params.derivation_path = (flags['derivation-path']||"m/44'/0'/0'") + '/0/0'; // zeroth address
+    }
+    await this.callModuleMethod('wallet.generate', wallet_name, wallet_type, network, params);
     return { name: wallet_name };
   }
 }

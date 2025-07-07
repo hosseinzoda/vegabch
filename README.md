@@ -241,7 +241,7 @@ ARGUMENTS
 
 FLAGS
   --mnemonic=<value>         Wallet's mnemonic words, hd wallet's private key represented as mnemonic words.
-  --derivation-path=<value>  Wallet's mnemonic words, hd wallet's private key represented as mnemonic words.
+  --derivation-path=<value>  The derivation path for the hd wallet. default = m/44'/0'/0'
   --secret=<value>           Wallet's private key represented as wallet import format (wif).
       --config=<value>       (required) A path to the config file. Depending on the command the config can be for a
                              client, daemon or standalone setup.
@@ -268,7 +268,7 @@ generate a wallet
 
 ```
 USAGE
-  $ vegabch wallet:generate NAME TYPE NETWORK --config <value> [--json]
+  $ vegabch wallet:generate NAME TYPE NETWORK --config <value> [--json] [-p <value>]
 
 ARGUMENTS
   NAME     A unique name for referencing the wallet once saved.
@@ -276,8 +276,9 @@ ARGUMENTS
   NETWORK  (mainnet|testnet|regtest) [default: mainnet] Wallet's target network.
 
 FLAGS
-  --config=<value>  (required) A path to the config file. Depending on the command the config can be for a client,
-                    daemon or standalone setup.
+  --derivation-path=<value>  The derivation path for the hd wallet. default = m/44'/0'/0'
+      --config=<value>       (required) A path to the config file. Depending on the command the config can be for a
+                             client, daemon or standalone setup.
 
 GLOBAL FLAGS
   --json  Format output as json.
