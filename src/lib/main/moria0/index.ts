@@ -11,7 +11,9 @@ import {
   UTXOWithNFT, OutputWithFT, TokenId, Fraction,
   NATIVE_BCH_TOKEN_ID,
 } from '@cashlab/common';
+import { simpleJsonSerializer } from '@cashlab/common/util.js';
 import MoriaV0 from '@cashlab/moria/v0/index.js';
+import { updateOracleMessage } from '@cashlab/moria/v0/compiler.js';
 
 import {
   assertSuccess, decodeTransaction, decodeAuthenticationInstructions,
@@ -553,6 +555,46 @@ methods_wrapper.add('reduce-loan', async ({ vega_storage_provider, utxo_tracker,
     for (const tx_result of result.tx_result_chain) {
       await broadcastTransaction(client, tx_result.txbin, false);
     }
+  }
+  return result;
+});
+
+methods_wrapper.add('update-price-oracle', async ({ vega_storage_provider, utxo_tracker, cauldron_client_manager, state_manager }: MoriaV0InputServices, wallet_name: string, pubkey: Uint8Array, message: Uint8Array, datasig: Uint8Array, { broadcast, txfee_per_byte, verify }: { broadcast?: boolean, txfee_per_byte?: bigint, verify?: boolean } = {}) => {
+  const { moria, oracle_utxo } = await state_manager.requireMoriaState();
+  const wallet_data = await vega_storage_provider.getWalletData(wallet_name);
+  if (wallet_data == null) {
+    throw new ValueError(`wallet not found, name: ${wallet_name}`);
+  }
+  const addr_info = genWalletAddressInfo(wallet_data);
+  if (addr_info.private_key == null) {
+    throw new Error(`wallet's private_key is not available!`);
+  }
+  moria.setTxFeePerByte(txfee_per_byte == null ? 1n : txfee_per_byte);
+  const moria_context = moria.getCompilerContext();
+  const wallet_input_coins: SpendableCoin[] = (await utxo_tracker.getUTXOListForLockingBytecode(addr_info.locking_bytecode)).map((utxo) => ({
+    type: SpendableCoinType.P2PKH,
+    output: utxo.output,
+    outpoint: utxo.outpoint,
+    key: addr_info.private_key as Uint8Array,
+  }));
+  const payout_rules: PayoutRule[] = [
+    {
+      locking_bytecode: addr_info.locking_bytecode,
+      type: PayoutAmountRuleType.CHANGE,
+    },
+  ];
+  const input_coins: SpendableCoin[] = selectInputCoins(wallet_input_coins, [ { token_id: NATIVE_BCH_TOKEN_ID, amount: DEFAULT_TX_FEE_RESERVE } ], { allow_nft: false, select_pure_bch: true, smallest_first: true });
+  const oracle_message = MoriaV0.parseOracleMessageFromNFTCommitment(oracle_utxo.output.token.nft.commitment);
+  const result = updateOracleMessage(moria_context, oracle_utxo, pubkey, message, datasig, input_coins, payout_rules);
+  if (verify) {
+    moria.verifyTxResult(result);
+  }
+  if (broadcast) {
+    const client = cauldron_client_manager.getClient();
+    if (client == null) {
+      throw new ValueError('client is not available!');
+    }
+    await broadcastTransaction(client, result.txbin, false);
   }
   return result;
 });

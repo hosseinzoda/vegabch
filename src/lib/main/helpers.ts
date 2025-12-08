@@ -23,7 +23,7 @@ export const initModuleMethodWrapper = () => {
   };
 };
 
-export const selectInputCoins = (input_coins: SpendableCoin[], requirements: Array<{ token_id: TokenId, amount: bigint, min_amount_per_utxo?: bigint, min_token_amount_per_utxo?: bigint }>, { allow_nft, select_pure_bch, include_tokens }: { allow_nft?: boolean, select_pure_bch?: boolean, include_tokens?: TokenId[] }): SpendableCoin[] => {
+export const selectInputCoins = (input_coins: SpendableCoin[], requirements: Array<{ token_id: TokenId, amount: bigint, min_amount_per_utxo?: bigint, min_token_amount_per_utxo?: bigint }>, { allow_nft, select_pure_bch, include_tokens, smallest_first }: { allow_nft?: boolean, select_pure_bch?: boolean, include_tokens?: TokenId[], smallest_first?: boolean }): SpendableCoin[] => {
   input_coins = allow_nft ? input_coins : input_coins.filter((a) => a.output.token?.nft?.commitment == null);
   const output: SpendableCoin[] = [];
   requirements = structuredClone(requirements);
@@ -31,15 +31,21 @@ export const selectInputCoins = (input_coins: SpendableCoin[], requirements: Arr
   for (const requirement of requirements) {
     let sub_input_coins = input_coins.filter((a) => output.indexOf(a) == -1 && (include_tokens != null ? a.output.token == null || include_tokens.indexOf(a.output.token.token_id) != -1 : true));
     if (requirement.token_id == NATIVE_BCH_TOKEN_ID) {
+      const sortFunc = smallest_first ?
+        ((a: SpendableCoin, b: SpendableCoin) => a.output.amount - b.output.amount) :
+        ((a: SpendableCoin, b: SpendableCoin) => b.output.amount - a.output.amount);
       sub_input_coins = [
         // first-in-line coins without tokens
-        ...bigIntArraySortPolyfill(sub_input_coins.filter((a) => a.output.token == null), (a, b) => b.output.amount - a.output.amount),
+        ...bigIntArraySortPolyfill(sub_input_coins.filter((a) => a.output.token == null), sortFunc),
         // second-in-line coins with tokens
-        ...(select_pure_bch ? [] : bigIntArraySortPolyfill(sub_input_coins.filter((a) => a.output.token != null), (a, b) => b.output.amount - a.output.amount)),
+        ...(select_pure_bch ? [] : bigIntArraySortPolyfill(sub_input_coins.filter((a) => a.output.token != null), sortFunc)),
       ];
     } else {
+      const sortFunc = smallest_first ?
+        ((a: SpendableCoin, b: SpendableCoin) => (a.output as OutputWithFT).token.amount - (b.output as OutputWithFT).token.amount) :
+        ((a: SpendableCoin, b: SpendableCoin) => (b.output as OutputWithFT).token.amount - (a.output as OutputWithFT).token.amount);
       sub_input_coins = sub_input_coins.filter((a) => a.output?.token?.token_id == requirement.token_id && a.output.token.amount > 0n);
-      bigIntArraySortPolyfill(sub_input_coins, (a, b) => (b.output as OutputWithFT).token.amount - (a.output as OutputWithFT).token.amount);
+      bigIntArraySortPolyfill(sub_input_coins, sortFunc);
     }
     for (const input_coin of sub_input_coins) {
       if (requirement.amount <= 0n) {

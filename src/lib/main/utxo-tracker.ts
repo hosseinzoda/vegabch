@@ -1,6 +1,6 @@
 import type ElectrumClientManager from './electrum-client-manager.js';
 import type { ElectrumClient, ElectrumClientEvents, RPCNotification as ElectrumRPCNotification } from '@electrum-cash/network';
-import { uint8ArrayEqual, UTXO } from '@cashlab/common';
+import { UTXO } from '@cashlab/common';
 import { assertSuccess, lockingBytecodeToCashAddress } from '@cashlab/common/libauth.js';
 import { EventEmitter } from 'node:events';
 import type { Service, Console, ServiceDependency } from './types.js';
